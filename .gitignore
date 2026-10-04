@@ -1,0 +1,16 @@
+node_modules/
+dist/
+.npm-cache/
+test-results/
+*.tsbuildinfo
+.venv/
+.local/
+__pycache__/
+.pytest_cache/
+.env
+.env.*
+!.env.example
+public/assets/fonts/private/
+preview/
+scripts/download-design-assets.ps1
+public/assets/figma/
