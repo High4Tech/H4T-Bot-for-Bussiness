@@ -9,10 +9,6 @@ from server.app import create_app, password_hash, COOKIE
 ORIGIN = {"Origin": "http://127.0.0.1:5173"}
 PASSWORD = "Synthetic-Test-Passphrase-2026"
 
-@pytest.fixture
-def service(tmp_path):
-    return create_app(tmp_path / "test.sqlite3")
-
 def owner(app, email="owner@example.test", company="Example Business"):
     client = TestClient(app)
     response = client.post("/api/auth/register", json=dict(email=email, password=PASSWORD, name="Sample Owner", company=company), headers=ORIGIN)
@@ -25,8 +21,8 @@ def test_session_hash_cookie_and_logout(service):
     assert "httponly" in cookie and "samesite=strict" in cookie and "path=/api" in cookie
     token = client.cookies.get(COOKIE)
     with service.state.db() as db:
-        stored = db.execute("SELECT password_hash FROM users").fetchone()[0]
-        session = db.execute("SELECT hash FROM sessions").fetchone()[0]
+        stored = db.execute("SELECT password_hash FROM users").fetchone()["password_hash"]
+        session = db.execute("SELECT hash FROM sessions").fetchone()["hash"]
     assert PASSWORD not in stored and stored.startswith("scrypt:")
     assert session == hashlib.sha256(token.encode()).hexdigest()
     assert client.get("/api/auth/me").json()["id"] == user["id"]

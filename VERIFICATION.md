@@ -1,8 +1,20 @@
 # Local verification — 5 October 2026
 
-Executed on the user’s Windows PC, in the standalone H4T Bot workspace. This describes the premium, single-assistant revision; it does not claim a deployed product or active AI engine.
+Executed on the user’s Windows PC, in the standalone H4T Bot workspace. This covers the premium interface baseline and the subsequent PostgreSQL persistence revision; it does not claim a deployed product or active AI engine.
 
-## Automated checks actually run
+## PostgreSQL revision: checks actually completed
+
+- Installed official PostgreSQL 17.11 binaries inside the project, initialized `h4t_bot`, and bound it to `127.0.0.1:55432`. No cloud or global Windows database service was created. Docker Desktop's engine did not become available; the app uses the portable direct runtime.
+- Preserved the original SQLite file, created a backup, and imported eight existing account/settings/session rows. The existing synthetic preview owner signed in successfully through Vite's real `/api` proxy.
+- Database inspection confirmed 18 base tables, schema version 2 and 15 tables with forced row-level security. pgvector is absent and explicitly deferred.
+- The TypeScript and final Vite production build passed (88 modules). All six existing Node tests passed.
+- Six original API tests and five product tests run against both SQLite and actual PostgreSQL. All 22 Python cases passed, with one existing Starlette HTTPX TestClient deprecation warning. Product checks cover persisted sources/files/revisions, stale updates, tenant and visitor-token isolation, consent, file limits, restart behavior, handoff, paused replies, concurrent idempotency, Demo invoices and SQL-level operator restrictions.
+- Through the running local proxy, a synthetic private upload, visitor handoff, owner takeover, team reply and Growth Demo plan were saved. PostgreSQL was stopped and restarted; the authenticated workspace, original file bytes, visitor token and team reply still worked. This verifies API delivery across independent clients, not a fresh browser rendering check.
+- Created a private PostgreSQL dump and upload backup, checked hashes, restored it into an isolated temporary database, reapplied grants, and verified one company and one source file. The running database was not overwritten. Zero temporary test databases remained after cleanup.
+- All six supplied local font endpoints still returned valid OpenType files.
+- The documented local startup helper ran successfully and reused the existing loopback API and preview.
+
+## Earlier interface checks actually run
 
 - TypeScript and the final Vite production build passed (88 modules).
 - Six Node tests passed: unavailable facts, simulated handoff, status transitions, metadata projection, independent synthetic themes and fixture synchronization.
@@ -13,7 +25,7 @@ Executed on the user’s Windows PC, in the standalone H4T Bot workspace. This d
 
 The initial unscoped Python test attempt stalled while discovering the unrelated home-directory project. That helper was interrupted; a repository-specific pytest.ini and explicit `-c pytest.ini` scoped the successful runs. Do not interpret the stalled attempt as a pass.
 
-## Browser checks actually performed on this revision
+## Browser checks from the earlier interface baseline (before database wiring)
 
 - Product website rendered the original High4Tech branding, supplied font-family styles, bundled Phosphor icons and animated conversation cards.
 - Synthetic local account sign-in opened its protected workspace. Logout returned to the sign-in page.
@@ -34,6 +46,8 @@ The current in-app browser did not apply the requested 390 × 844 viewport overr
 
 WordPress plugin execution, a Shopify store/theme, Meta’s live handshake, social outbound delivery, social OAuth/app review, email delivery and public hosting were not tested. The Meta tests use signed synthetic payloads, not live customer traffic. No provider credentials were installed and no tunnel or cloud service was provisioned.
 
-No AI model, embeddings, ingestion, PostgreSQL, training, benchmarks, durable visitor sessions, cross-tab registered inbox delivery, production host policy, quotas, real payments, retention or exhaustive accessibility/device coverage are implemented or verified. Registered chat/source/billing previews remain in memory; real account and appearance/channel settings are local API-backed. A synthetic preview owner was created only in the ignored local database for browser verification, then signed out; its data is not included in Git.
+No AI model, embeddings, pgvector extension, ingestion, training, benchmarks, social outbound delivery, production host policy, real payments, retention jobs or exhaustive accessibility/device coverage are implemented or verified. Accounts, settings, files, source records, visitor sessions, chats, handoffs and Demo billing now persist in local PostgreSQL. Sample visitor and source records used for verification remain only in the ignored development database.
 
-The platform UI imports no customer store. Production privacy and security still require the future service/database architecture and deployment review. No pixel-exact match to every Figma frame is claimed.
+The attempted current browser inspection was rejected by the browser tool URL security policy before navigation. No workaround was attempted. The new database-connected screen behavior has build/API verification, but no fresh visual browser check is claimed.
+
+The platform UI imports no customer store. The operator SQL-role and tenant row-security restrictions are tested locally. Production security and deployment review remain separate work. No pixel-exact match to every Figma frame is claimed.

@@ -1,4 +1,4 @@
-"""Local product service. SQLite is a development adapter, not the production DB."""
+"""Local product service backed by PostgreSQL, with a scoped SQLite test adapter."""
 from __future__ import annotations
 import hashlib
 import hmac
@@ -6,13 +6,13 @@ import json
 import os
 import re
 import secrets
-import sqlite3
 import time
 from collections import defaultdict, deque
-from contextlib import contextmanager
 from pathlib import Path
 from fastapi import FastAPI, HTTPException, Request, Response, Depends
 from pydantic import BaseModel, Field
+from server.database import Database, INTEGRITY_ERRORS
+from server.product import install_product_routes
 from starlette.middleware.trustedhost import TrustedHostMiddleware
 
 CHANNELS = ("web", "whatsapp", "facebook", "wordpress", "shopify")
@@ -68,30 +68,12 @@ def password_matches(password: str, stored: str):
     except (ValueError, IndexError):
         return False
 
-def create_app(db_path: Path | str | None = None):
+def create_app(db_path: Path | str | None = None, db_config=None):
     app = FastAPI(title="H4T Bot local product API", docs_url=None, redoc_url=None, openapi_url=None)
-    path = Path(db_path or os.environ.get("H4T_DATABASE_PATH", ".local/h4t.sqlite3"))
-    path.parent.mkdir(parents=True, exist_ok=True)
-    @contextmanager
-    def db():
-        connection = sqlite3.connect(path, timeout=10)
-        connection.row_factory = sqlite3.Row
-        connection.execute("PRAGMA foreign_keys=ON")
-        try:
-            with connection:
-                yield connection
-        finally:
-            connection.close()
-    with db() as conn:
-        conn.executescript("""
-        CREATE TABLE IF NOT EXISTS companies(id TEXT PRIMARY KEY, name TEXT NOT NULL, bot_id TEXT UNIQUE NOT NULL, appearance TEXT NOT NULL, created REAL NOT NULL);
-        CREATE TABLE IF NOT EXISTS users(id TEXT PRIMARY KEY, email TEXT UNIQUE NOT NULL, name TEXT NOT NULL, password_hash TEXT NOT NULL, company_id TEXT REFERENCES companies(id), role TEXT NOT NULL);
-        CREATE TABLE IF NOT EXISTS sessions(hash TEXT PRIMARY KEY, user_id TEXT NOT NULL REFERENCES users(id), expires REAL NOT NULL);
-        CREATE TABLE IF NOT EXISTS channels(company_id TEXT NOT NULL REFERENCES companies(id), channel TEXT NOT NULL, enabled INTEGER NOT NULL, provider_id TEXT NOT NULL, PRIMARY KEY(company_id,channel));
-        CREATE UNIQUE INDEX IF NOT EXISTS unique_channel_provider ON channels(channel,provider_id) WHERE provider_id != '';
-        CREATE TABLE IF NOT EXISTS channel_events(id TEXT PRIMARY KEY, company_id TEXT NOT NULL REFERENCES companies(id), channel TEXT NOT NULL, payload TEXT NOT NULL, created REAL NOT NULL);
-        """)
+    database = Database(db_path, config=db_config)
+    db = database.connect
     app.state.db = db
+    app.state.database = database
     attempts = defaultdict(deque)
     dummy_hash = password_hash("unused-local-auth-comparison")
     app.add_middleware(TrustedHostMiddleware, allowed_hosts=["127.0.0.1", "localhost", "testserver"])
@@ -101,8 +83,9 @@ def create_app(db_path: Path | str | None = None):
         if request.method in {"POST", "PUT", "PATCH", "DELETE"} and not request.url.path.startswith("/api/webhooks/"):
             if request.headers.get("origin") not in ORIGINS:
                 return Response("Untrusted request origin", status_code=403)
+        body_limit = 10*1024*1024 if request.url.path == "/api/company/sources/upload" else 1600000
         try:
-            if int(request.headers.get("content-length", "0")) > 1600000:
+            if int(request.headers.get("content-length", "0")) > body_limit:
                 return Response("Request too large", status_code=413)
         except ValueError:
             return Response("Invalid content length", status_code=400)
@@ -111,7 +94,7 @@ def create_app(db_path: Path | str | None = None):
             body = bytearray()
             async for chunk in request.stream():
                 body.extend(chunk)
-                if len(body) > 1600000:
+                if len(body) > body_limit:
                     return Response("Request too large", status_code=413)
             request._body = bytes(body)
         response = await call_next(request)
@@ -171,7 +154,7 @@ def create_app(db_path: Path | str | None = None):
 
     @app.get("/api/health")
     def health():
-        return {"status": "ok", "runtime": "local", "ai": "deferred"}
+        return {"status": "ok", "runtime": "local", "ai": "deferred", "database": database.health()}
 
     @app.post("/api/auth/register", status_code=201)
     def register(data: Registration, request: Request, response: Response):
@@ -185,9 +168,10 @@ def create_app(db_path: Path | str | None = None):
             with db() as conn:
                 conn.execute("INSERT INTO companies VALUES(?,?,?,?,?)", (cid, data.company.strip(), bot_id, json.dumps(appearance), time.time()))
                 conn.execute("INSERT INTO users VALUES(?,?,?,?,?,?)", (uid, email, data.name.strip(), password_hash(data.password), cid, "owner"))
+                conn.execute("INSERT INTO subscriptions VALUES(?,?,?)", (cid,"Starter",time.time()))
                 for channel in CHANNELS:
                     conn.execute("INSERT INTO channels VALUES(?,?,?,?)", (cid, channel, 1 if channel == "web" else 0, ""))
-        except sqlite3.IntegrityError:
+        except INTEGRITY_ERRORS:
             raise HTTPException(409, "This email is already registered.")
         create_session(uid, response)
         return public_user(dict(id=uid, name=data.name.strip(), email=email, role="owner", company_id=cid))
@@ -217,7 +201,7 @@ def create_app(db_path: Path | str | None = None):
 
     @app.get("/api/company")
     def company(user=Depends(company_user)):
-        with db() as conn:
+        with db(company=user["company_id"]) as conn:
             row = conn.execute("SELECT bot_id,appearance FROM companies WHERE id=?", (user["company_id"],)).fetchone()
         return {"botId": row["bot_id"], "appearance": json.loads(row["appearance"])}
 
@@ -228,7 +212,7 @@ def create_app(db_path: Path | str | None = None):
                 raise HTTPException(422, "Choose a local PNG, JPEG or WebP asset.")
         if any(not q.strip() or len(q) > 100 for q in data.questions):
             raise HTTPException(422, "Questions must be 1–100 characters.")
-        with db() as conn:
+        with db(company=user["company_id"]) as conn:
             bot_id = conn.execute("SELECT bot_id FROM companies WHERE id=?", (user["company_id"],)).fetchone()["bot_id"]
             value = {**data.model_dump(), "id": bot_id}
             conn.execute("UPDATE companies SET name=?,appearance=? WHERE id=?", (data.name, json.dumps(value), user["company_id"]))
@@ -237,14 +221,14 @@ def create_app(db_path: Path | str | None = None):
     @app.get("/api/embed/{bot_id}")
     def embed(bot_id: str):
         with db() as conn:
-            row = conn.execute("SELECT appearance FROM companies WHERE bot_id=?", (bot_id,)).fetchone()
+            row = conn.execute("SELECT appearance FROM public_assistant_appearance WHERE bot_id=?", (bot_id,)).fetchone()
         if not row:
             raise HTTPException(404, "Assistant not found.")
         return {"appearance": json.loads(row["appearance"]), "mode": "scripted-local-preview"}
 
     @app.get("/api/company/channels")
     def channels(user=Depends(company_user)):
-        with db() as conn:
+        with db(company=user["company_id"]) as conn:
             rows = conn.execute("SELECT channel,enabled,provider_id FROM channels WHERE company_id=?", (user["company_id"],)).fetchall()
         return [{"channel": r["channel"], "enabled": bool(r["enabled"]), "providerId": r["provider_id"],
                  "status": "Setup saved" if r["enabled"] else "Not configured",
@@ -257,16 +241,16 @@ def create_app(db_path: Path | str | None = None):
         if channel in ("whatsapp", "facebook") and data.enabled and not data.provider_id:
             raise HTTPException(422, "Enter your phone-number ID or Page ID.")
         try:
-            with db() as conn:
+            with db(company=user["company_id"]) as conn:
                 conn.execute("UPDATE channels SET enabled=?,provider_id=? WHERE company_id=? AND channel=?",
                              (int(data.enabled), data.provider_id, user["company_id"], channel))
-        except sqlite3.IntegrityError:
+        except INTEGRITY_ERRORS:
             raise HTTPException(409, "This provider account is already assigned to another workspace.")
         return {"status": "Setup saved; live delivery is not verified", "channel": channel}
 
     @app.get("/api/company/channel-events")
     def events(user=Depends(company_user)):
-        with db() as conn:
+        with db(company=user["company_id"]) as conn:
             rows = conn.execute("SELECT id,channel,created FROM channel_events WHERE company_id=? ORDER BY created DESC LIMIT 30", (user["company_id"],)).fetchall()
         return [dict(r) for r in rows]
 
@@ -298,7 +282,7 @@ def create_app(db_path: Path | str | None = None):
         if not isinstance(payload, dict) or not isinstance(payload.get("entry"), list):
             raise HTTPException(422, "Invalid webhook envelope.")
         accepted = 0
-        with db() as conn:
+        with db(plane="ingest") as conn:
             for entry in payload["entry"][:100]:
                 if not isinstance(entry, dict):
                     continue
@@ -316,19 +300,20 @@ def create_app(db_path: Path | str | None = None):
                     destination = conn.execute("SELECT company_id FROM channels WHERE channel=? AND provider_id=? AND provider_id!='' AND enabled=1", (channel, provider)).fetchone()
                     if destination:
                         event_id = hashlib.sha256((channel + provider + json.dumps(value, sort_keys=True)).encode()).hexdigest()
-                        cursor = conn.execute("INSERT OR IGNORE INTO channel_events VALUES(?,?,?,?,?)",
+                        cursor = conn.execute("INSERT INTO channel_events VALUES(?,?,?,?,?) ON CONFLICT(id) DO NOTHING",
                                               (event_id, destination["company_id"], channel, json.dumps(value), time.time()))
                         accepted += cursor.rowcount
         return {"accepted": accepted, "replyDelivery": "deferred"}
 
     @app.get("/api/platform/companies")
     def platform_companies(user=Depends(platform_user)):
-        with db() as conn:
-            rows = conn.execute("SELECT id,name,bot_id,created FROM companies ORDER BY created DESC").fetchall()
+        with db(plane="platform") as conn:
+            rows = conn.execute("SELECT id,name,bot_id,created,plan FROM platform_company_metadata ORDER BY created DESC").fetchall()
         # Deliberately exclude appearance, knowledge, profiles and event payloads.
         return [{"id": r["id"], "name": r["name"], "botId": r["bot_id"], "bots": 1,
-                 "plan": "Demo", "status": "Local account", "answers": 0} for r in rows]
+                 "plan": r["plan"] + " · Demo", "status": "Local account", "answers": 0} for r in rows]
 
+    install_product_routes(app, database, company_user)
     return app
 
 app = create_app()
