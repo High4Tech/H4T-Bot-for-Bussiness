@@ -1,5 +1,13 @@
 # Local verification — 6 October 2026
 
+## GO dashboard and local settings pass — 6 October
+
+- Inspected GO light Home `3008:17100`, Chats `3008:17205`, chat detail `3008:17431`, Knowledge `3008:18714`, Settings `3008:18910`, Users `3008:18814`, Pricing `3008:19779`, and their child controls before coding. The resulting dashboard uses the High4Tech brand, a GO-style sidebar, cards, activity line, table and split chat layout. Calls and unsupported controls remain hidden. No pixel-exact visual match is claimed.
+- The owner API now serves counts and hourly chat-start data, searched/paginated conversation summaries, details, JSON export and version-checked deletion. Settings and team entries persist as drafts. This does not turn on AI behavior or team sign-in.
+- Migrated the local PostgreSQL database to schema version 3 with a tenant-scoped preferences table and refreshed grants. Restarted the local API. Its health endpoint reported PostgreSQL schema 3; the new protected preferences route returned 401 without a session instead of the old 404.
+- `npm run build` passed after the final UI changes; six Node tests passed. All 24 Python tests passed against SQLite and the local PostgreSQL test database, including new activity, actions, preferences and tenant-boundary cases. One existing Starlette/TestClient deprecation warning remains.
+- The local preview was left running. Fresh browser visual inspection was not performed for this pass, so rendering and interaction alignment remain to be checked in the browser.
+
 ## Visual refinement and service checks — 6 October
 
 - Inspected exact Figma contexts and screenshots before implementation: Untitled `NU1SlgUvw6zmalvW1Qhj6K` button `3287:427323`; GO `dxZUj3AlKSm8II2xgIvFwY` sidebar `3040:36753` and widget Home `2923:8335`. Reused the original High4Tech assets, supplied local typography and bundled Phosphor icons. No exact frame match is claimed.

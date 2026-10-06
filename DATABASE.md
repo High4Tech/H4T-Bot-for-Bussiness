@@ -8,12 +8,13 @@ PostgreSQL 17.11 runs only on `127.0.0.1:55432`, database `h4t_bot`. The Windows
 | --- | --- |
 | companies, users, sessions | One assistant per company, branding, salted password hashes, expiring hashed login tokens |
 | channels, channel_events | Saved installation/routing settings and signed inbound envelope receipts |
+| workspace_preferences | Tenant-scoped business hours, language, behavior and proposed team directory drafts; these are not applied to AI or team authentication |
 | knowledge_sources, source_versions, ingestion_jobs | Website URLs and private file references, revisions, explicit deferred ingestion jobs |
 | visitors, visitor_tokens | Contact consent and hashed eight-hour conversation access tokens |
 | conversations, messages, message_requests | Saved transcripts, handoff state, ordered messages, retry receipts |
 | subscriptions, demo_invoices | Demo plan changes and idempotent simulated invoices; no payment processing |
 | usage_events, audit_events | Activity counters and opaque action/entity metadata, without copying transcript content |
-| schema_migrations | Applied schema version, currently 2 |
+| schema_migrations | Applied schema version, currently 3 |
 
 File bytes are stored under `.local/uploads/` using random opaque filenames. Their original names, size and SHA-256 are recorded in source versions. Downloads require the owning customer session and return attachments. Website URLs are recorded without fetching. Changing a source's Demo publication status creates a new version and a deferred job; it does not ingest data or train a model. Archived sources retain their versions and bytes.
 

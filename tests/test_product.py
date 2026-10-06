@@ -141,3 +141,37 @@ def test_contact_consent_and_upload_limits(service):
     assert v.post(endpoint,headers=ORIGIN,json={'name':'Test visitor','email':'visitor@example.test','consent':True}).status_code==201
     assert a.post('/api/company/sources/upload',headers={**ORIGIN,'X-Filename':'fake.pdf'},content=b'not a pdf').status_code==422
     assert a.post('/api/company/sources/upload',headers={**ORIGIN,'X-Filename':'too-large.txt'},content=b'x'*(10*1024*1024+1)).status_code==413
+
+def test_dashboard_activity_actions_preferences_and_tenant_scope(service):
+    a,ua=owner(service);b,_=owner(service,'b')
+    v,data,path=visitor(service,ua['botId']);cid=data['conversation']['id']
+    assert write(v,path,data['token'],'Talk to a person').status_code==200
+    now=time.time()
+    params={'start':now-86400,'end':now+5,'day_start':now-86400}
+    activity=a.get('/api/company/activity',params=params)
+    assert activity.status_code==200,activity.text
+    assert activity.json()['total']==1 and activity.json()['waiting']==1
+    assert sum(p['count'] for p in activity.json()['points'])==1
+    listing=a.get('/api/company/conversations',params={'q':'Guest','status':'HUMAN_REQUESTED','page':1,'limit':1})
+    assert listing.status_code==200,listing.text
+    assert listing.json()['total']==1 and listing.json()['items'][0]['id']==cid
+    assert b.get('/api/company/conversations').json()['items']==[]
+    assert b.get('/api/company/conversations/'+cid).status_code==404
+    assert b.get('/api/company/conversations/'+cid+'/export').status_code==404
+    exported=a.get('/api/company/conversations/'+cid+'/export')
+    assert exported.status_code==200 and exported.json()['messages'][0]['text']=='Talk to a person'
+    preferences=a.get('/api/company/preferences')
+    assert preferences.status_code==200 and preferences.json()['version']==0
+    draft=preferences.json()['settings'];draft['subjects']='Opening hours and services'
+    saved=a.put('/api/company/preferences',headers=ORIGIN,json={'expected_version':0,'settings':draft})
+    assert saved.status_code==200,saved.text
+    assert saved.json()['version']==1 and saved.json()['appliedToEngine'] is False
+    assert a.put('/api/company/preferences',headers=ORIGIN,json={'expected_version':0,'settings':draft}).status_code==409
+    assert b.get('/api/company/preferences').json()['settings']['subjects']==''
+    version=listing.json()['items'][0]['version']
+    delete='/api/company/conversations/'+cid
+    assert b.request('DELETE',delete,headers=ORIGIN,json={'expected_version':version}).status_code==404
+    assert a.request('DELETE',delete,headers=ORIGIN,json={'expected_version':version+1}).status_code==409
+    assert a.request('DELETE',delete,headers=ORIGIN,json={'expected_version':version}).status_code==200
+    assert a.get(delete).status_code==404
+    assert v.get(path,headers={'Authorization':'Bearer '+data['token']}).status_code==401

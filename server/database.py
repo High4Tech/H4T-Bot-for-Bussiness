@@ -20,6 +20,7 @@ CREATE UNIQUE INDEX IF NOT EXISTS unique_channel_provider ON channels(channel,pr
 CREATE TABLE IF NOT EXISTS channel_events(id TEXT PRIMARY KEY, company_id TEXT NOT NULL REFERENCES companies(id), channel TEXT NOT NULL, payload TEXT NOT NULL, created DOUBLE PRECISION NOT NULL);
 """
 PRODUCT_SCHEMA = """
+CREATE TABLE IF NOT EXISTS workspace_preferences(company_id TEXT PRIMARY KEY REFERENCES companies(id),settings TEXT NOT NULL,version INTEGER NOT NULL DEFAULT 1,updated DOUBLE PRECISION NOT NULL);
 CREATE TABLE IF NOT EXISTS knowledge_sources(
  id TEXT PRIMARY KEY,company_id TEXT NOT NULL REFERENCES companies(id),name TEXT NOT NULL,kind TEXT NOT NULL CHECK(kind IN ('Website','File')),
  source_url TEXT NOT NULL DEFAULT '',status TEXT NOT NULL DEFAULT 'Draft' CHECK(status IN ('Draft','Demo published')),version INTEGER NOT NULL DEFAULT 1 CHECK(version>0),
@@ -71,7 +72,7 @@ CREATE VIEW IF NOT EXISTS platform_company_metadata AS
  FROM companies c LEFT JOIN subscriptions s ON s.company_id=c.id;
 CREATE VIEW IF NOT EXISTS public_assistant_appearance AS SELECT bot_id,appearance FROM companies;
 """
-PRIVATE_TABLES = ['knowledge_sources','source_versions','ingestion_jobs','visitors','conversations','visitor_tokens','messages','message_requests','subscriptions','demo_invoices','usage_events','audit_events','channel_events']
+PRIVATE_TABLES = ['workspace_preferences','knowledge_sources','source_versions','ingestion_jobs','visitors','conversations','visitor_tokens','messages','message_requests','subscriptions','demo_invoices','usage_events','audit_events','channel_events']
 
 class PgConnection:
     def __init__(self, connection): self.connection = connection
@@ -117,6 +118,7 @@ class Database:
             if not self.postgres: connection.execute('PRAGMA journal_mode=WAL')
             connection.executescript(BASE_SCHEMA + PRODUCT_SCHEMA + "CREATE TABLE IF NOT EXISTS schema_migrations(version INTEGER PRIMARY KEY,applied DOUBLE PRECISION NOT NULL);")
             connection.execute("INSERT INTO schema_migrations VALUES(2,?) ON CONFLICT(version) DO NOTHING", (time.time(),))
+            connection.execute("INSERT INTO schema_migrations VALUES(3,?) ON CONFLICT(version) DO NOTHING", (time.time(),))
             connection.execute("INSERT INTO subscriptions(company_id,plan,updated) SELECT id,'Starter',? FROM companies WHERE 1=1 ON CONFLICT(company_id) DO NOTHING", (time.time(),))
 
     def health(self):

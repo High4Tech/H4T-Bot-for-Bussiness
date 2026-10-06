@@ -6,6 +6,7 @@ import type {BotConfig} from './demo-model.mjs';
 import './styles.css';
 import './premium.css';
 import './refinement.css';
+import './go.css';
 const Dashboard=lazy(()=>import('./Dashboard'));
 const Platform=lazy(()=>import('./Platform'));
 const Widget=lazy(()=>import('./Widget'));

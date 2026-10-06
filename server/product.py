@@ -65,10 +65,13 @@ def install_product_routes(app, database, company_user):
         row=conn.execute('SELECT c.*,v.name,v.email FROM conversations c JOIN visitors v ON v.id=c.visitor_id AND v.company_id=c.company_id WHERE c.id=? AND c.company_id=?', (cid,company)).fetchone()
         if not row: raise HTTPException(404,'Conversation not found.')
         messages=conn.execute('SELECT id,role,text,sequence,created FROM messages WHERE company_id=? AND conversation_id=? ORDER BY sequence DESC LIMIT 200',(company,cid)).fetchall()
-        return dict(id=row['id'],company=company,name=row['name'],email=row['email'],status=row['status'],version=row['version'],channel=row['channel'],created=row['created'],messages=[dict(m) for m in reversed(messages)])
+        return dict(id=row['id'],company=company,name=row['name'],email=row['email'],status=row['status'],version=row['version'],channel=row['channel'],created=row['created'],updated=row['updated'],messages=[dict(m) for m in reversed(messages)])
 
     def list_sources(conn, company):
         return [dict(r) for r in conn.execute('SELECT id,name,kind,status,version,source_url AS url,created FROM knowledge_sources WHERE company_id=? AND deleted_at IS NULL ORDER BY created DESC',(company,)).fetchall()]
+
+    from server.dashboard import install_dashboard_routes
+    install_dashboard_routes(app,database,company_user,conversation)
 
     def billing(conn, company):
         sub=conn.execute('SELECT plan FROM subscriptions WHERE company_id=?',(company,)).fetchone()

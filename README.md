@@ -45,11 +45,11 @@ The script extracts only six known font filenames, never ZIP paths or executable
 
 ## Surfaces
 
-The assistant workspace uses the supplied High4Tech mascot and local typography, a branded welcome preview, saved-storage status, and direct links to appearance, knowledge and channels. Shared controls follow the inspected Untitled library geometry; the widget uses the GO reference hierarchy with customer-specific button colors. The overview chart shows saved conversation starts over seven days, limited to the 50 most recent conversations returned by the workspace API.
+The customer dashboard adapts the inspected GO light-screen layout with a 280px sidebar, three summary cards, a period-filtered activity graph, searchable conversation table, pagination and a three-column chat detail. Its totals and chart are queried from the local database rather than the 50-row workspace snapshot. The widget still uses customer-specific branding and scripted local replies. Shared controls follow the inspected Untitled library geometry.
 
 - `/`: product website with original High4Tech branding and supplied fonts.
 - `/signup`, `/login`: local account registration and sign-in.
-- `/dashboard`: protected owner workspace with one business assistant. Overview, Assistant, Inbox, Knowledge, Appearance, Channels and Demo billing. Legacy `#/bots` and `#/install` links open Assistant and Channels.
+- `/dashboard`: protected owner workspace with one business assistant. Dashboard, Chat record, Knowledge, Integrations, Users, Settings, Appearance and Demo Pricing. Legacy `#/bots` and `#/install` links open Assistant and Integrations.
 - `/widget?company=<public-assistant-id>`: public branding from the local API, then a scripted chat preview. No owner account is required to view the widget.
 - `/demo-host.html?company=<public-assistant-id>`: loopback sample website with the isolated iframe widget.
 - `/widget?company=high4tech` and `company=cedar`: synthetic reference themes, independent of real account data.
@@ -71,7 +71,7 @@ The operator endpoint returns only an explicit metadata allowlist. No conversati
 
 The command prompts for a password without echoing it. Ordinary sign-up cannot request the operator role. No shared default operator password is provided.
 
-Registered visitor chats use hashed, expiring bearer tokens and are saved in PostgreSQL. A visitor can read only their own conversation. The owner Inbox and widget poll the local API; takeover pauses scripted replies and team messages are delivered across tabs. Synthetic reference fixtures still use BroadcastChannel and never include registered workspace data. Use sample visitor details during development.
+Registered visitor chats use hashed, expiring bearer tokens and are saved in PostgreSQL. A visitor can read only their own conversation. The owner Chat record and widget poll the local API; takeover pauses scripted replies and team messages are delivered across tabs. Owner actions include viewing, exporting and deleting a conversation with version checks. Settings and team entries are saved drafts: they do not change scripted replies, create accounts or send invitations. Synthetic reference fixtures still use BroadcastChannel and never include registered workspace data. Use sample visitor details during development.
 
 ## Channels: implemented scope
 
@@ -105,13 +105,14 @@ Product layout reference: https://www.figma.com/design/dxZUj3AlKSm8II2xgIvFwY/
 
 Exact inspected child contexts before implementation:
 - Widget set 2923:8293, including Home 2923:8335, Information 2923:8378, Chat 2923:8542, typing 2923:8582 and answered 2923:8610.
-- Dashboard 2913:7816 was sparse; inspected sidebar 3040:36753, metric 2913:7844, chart 2913:7860 and cell 2913:7868 separately.
+- Dashboard 2913:7816 was sparse; inspected sidebar 3040:36753, metric 2913:7844, chart 2913:7860 and cell 2913:7868 separately. The later GO pass inspected light Home 3008:17100, Chats 3008:17205 and chat detail 3008:17431, then individual metric, chart, query-cell and pagination child nodes.
 - Inbox metadata 2953:15870; high-fidelity header 2956:8691 and message 2959:10480.
 - Knowledge metadata 2913:7930; high-fidelity website card 2913:7937 and upload card 2913:7943.
+- The later pass also inspected Knowledge 3008:18714, Settings 3008:18910, Users 3008:18814, Pricing 3008:19779, integration 3008:17860 and their relevant child cards/controls. Calls, plaintext-password columns, Drive/Database sources and live-payment or live-AI claims were not carried into the app.
 
 Original High4Tech favicon, wordmark and mascots were copied from approved sources. The original exported Figma icons remain local references; runtime icons now use bundled Phosphor React components. Reference screenshots are not runtime assets. No remote fonts/images/inference calls are used.
 
-H4T adapts the GO hierarchy to #F97328, white-led UI and a single business assistant. Installation, platform and billing are new shared-component layouts; no pixel-exact Figma match is claimed.
+H4T adapts the GO hierarchy to #F97328, a white-led customer UI and a single business assistant. Original High4Tech assets replace GO marks. Installation, operator and billing retain product-specific layouts; no pixel-exact Figma match is claimed.
 
 ## Validation
 

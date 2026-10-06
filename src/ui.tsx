@@ -21,7 +21,14 @@ import {ListIcon} from '@phosphor-icons/react/dist/csr/List';
 import {MoonIcon} from '@phosphor-icons/react/dist/csr/Moon';
 import {SunIcon} from '@phosphor-icons/react/dist/csr/Sun';
 import {SignOutIcon} from '@phosphor-icons/react/dist/csr/SignOut';
-const icons:Record<string,typeof ChartBarIcon>={overview:ChartBarIcon,billing:ChartBarIcon,inbox:ChatCircleDotsIcon,knowledge:BooksIcon,appearance:PaletteIcon,install:PlugIcon,channels:PlugIcon,bots:RobotIcon,assistant:RobotIcon,website:GlobeIcon,web:GlobeIcon,user:UserIcon,close:XIcon,send:PaperPlaneTiltIcon,lock:LockKeyIcon,shield:ShieldCheckIcon,sparkle:SparkleIcon,arrow:ArrowUpRightIcon,whatsapp:WhatsappLogoIcon,facebook:FacebookLogoIcon,shopify:ShoppingBagIcon,wordpress:CodeIcon,menu:ListIcon,moon:MoonIcon,sun:SunIcon,logout:SignOutIcon};
+import {MagnifyingGlassIcon} from '@phosphor-icons/react/dist/csr/MagnifyingGlass';
+import {FunnelIcon} from '@phosphor-icons/react/dist/csr/Funnel';
+import {EyeIcon} from '@phosphor-icons/react/dist/csr/Eye';
+import {DownloadSimpleIcon} from '@phosphor-icons/react/dist/csr/DownloadSimple';
+import {TrashIcon} from '@phosphor-icons/react/dist/csr/Trash';
+import {GearSixIcon} from '@phosphor-icons/react/dist/csr/GearSix';
+import {UsersIcon} from '@phosphor-icons/react/dist/csr/Users';
+const icons:Record<string,typeof ChartBarIcon>={overview:ChartBarIcon,billing:ChartBarIcon,inbox:ChatCircleDotsIcon,knowledge:BooksIcon,appearance:PaletteIcon,install:PlugIcon,channels:PlugIcon,bots:RobotIcon,assistant:RobotIcon,website:GlobeIcon,web:GlobeIcon,user:UserIcon,close:XIcon,send:PaperPlaneTiltIcon,lock:LockKeyIcon,shield:ShieldCheckIcon,sparkle:SparkleIcon,arrow:ArrowUpRightIcon,whatsapp:WhatsappLogoIcon,facebook:FacebookLogoIcon,shopify:ShoppingBagIcon,wordpress:CodeIcon,menu:ListIcon,moon:MoonIcon,sun:SunIcon,logout:SignOutIcon,search:MagnifyingGlassIcon,filter:FunnelIcon,eye:EyeIcon,download:DownloadSimpleIcon,trash:TrashIcon,settings:GearSixIcon,team:UsersIcon};
 export function Icon({name}: {name: string}) {const Component=icons[name]??RobotIcon;return <Component className="icon" size={20} weight="regular" aria-hidden="true"/>;}
 export function Button({ children, variant='secondary', className='', ...props }: ButtonHTMLAttributes<HTMLButtonElement> & {variant?: 'primary'|'secondary'|'ghost'; children: ReactNode}) {
   return <button className={'button '+variant+' '+className} {...props}>{children}</button>;
