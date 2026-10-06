@@ -17,8 +17,16 @@ try {
         }
     }
     if (Test-Path (Join-Path $appRoot '.local/models/all-MiniLM-L6-v2/modules.json')) {
-        # A project-local file lock in the worker prevents duplicate processing.
-        Start-Process -FilePath $pythonExe -ArgumentList '-m server.worker' -WorkingDirectory $appRoot -WindowStyle Hidden -RedirectStandardOutput (Join-Path $appRoot '.local/worker.log') -RedirectStandardError (Join-Path $appRoot '.local/worker-error.log') | Out-Null
+        $runningWorker = Get-CimInstance Win32_Process -Filter "Name='python.exe'" | Where-Object { $_.CommandLine -like "*$pythonExe*" -and $_.CommandLine -like '*-m server.worker*' }
+        if (-not $runningWorker) {
+            Start-Process -FilePath $pythonExe -ArgumentList '-m server.worker' -WorkingDirectory $appRoot -WindowStyle Hidden -RedirectStandardOutput (Join-Path $appRoot '.local/worker.log') -RedirectStandardError (Join-Path $appRoot '.local/worker-error.log') | Out-Null
+            foreach ($attempt in 1..10) {
+                Start-Sleep -Milliseconds 500
+                $runningWorker = Get-CimInstance Win32_Process -Filter "Name='python.exe'" | Where-Object { $_.CommandLine -like "*$pythonExe*" -and $_.CommandLine -like '*-m server.worker*' }
+                if ($runningWorker) { break }
+            }
+            if (-not $runningWorker) { throw 'The knowledge worker did not stay running. Check .local/worker-error.log.' }
+        }
     }
     $healthy = $false
     foreach ($attempt in 1..10) {

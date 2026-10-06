@@ -5,7 +5,7 @@ export type Citation={sourceId:string;version:number;title:string;url:string|nul
 export type Message = {id:string;role:'visitor'|'bot'|'agent';text:string;citations?:Citation[];engine?:string};
 export type Conversation = {id:string;company:string;name:string;email:string;status:string;version?:number;created?:number;messages:Message[]};
 export type Source = {id:string;name:string;kind:'Website'|'File';status:'Demo published'|'Draft';version:number;indexStatus?:string;indexError?:string;chunks?:number};
-export type BillingData={plan:string;demo:boolean;invoices:{id:string;plan:string;cents:number;status:string;created:number}[]};
+export type BillingData={plan:string;demo:boolean;aiAnswers:number;invoices:{id:string;plan:string;cents:number;status:string;created:number}[]};
 export type Company = {config:BotConfig;sources:Source[];conversations:Conversation[];billing?:BillingData;database?:{engine:string;status:string;schemaVersion:number}};
 const configKey = 'h4t.demo.appearance.v1';
 function savedConfigs(): Record<string,BotConfig> {
@@ -97,11 +97,11 @@ export async function changeStatus(company:string,id:string,status:string) {
 }
 export function currentConversation(company:string,id:string) {return state[company].conversations.find(x=>x.id===id);}
 export async function addSource(company:string,name:string,kind:Source['kind'],url='') {
- if(!isFixture(company)){const sources=await api<Source[]>('/company/sources',{method:'POST',body:JSON.stringify({name,kind,url})});mutate(company,c=>({...c,sources}));return;}
- mutate(company,c=>({...c,sources:[...c.sources,{id:crypto.randomUUID(),name,kind,status:'Draft',version:1}]}));
+ if(!isFixture(company)){const sources=await api<Source[]>('/company/sources',{method:'POST',body:JSON.stringify({name,kind,url})});mutate(company,c=>({...c,sources}));return sources[0]?.id;}
+ const id=crypto.randomUUID();mutate(company,c=>({...c,sources:[...c.sources,{id,name,kind,status:'Draft',version:1}]}));return id;
 }
 export async function uploadSource(company:string,file:File){
- const sources=await api<Source[]>('/company/sources/upload',{method:'POST',headers:{'Content-Type':'application/octet-stream','X-Filename':encodeURIComponent(file.name)},body:file});mutate(company,c=>({...c,sources}));
+ const sources=await api<Source[]>('/company/sources/upload',{method:'POST',headers:{'Content-Type':'application/octet-stream','X-Filename':encodeURIComponent(file.name)},body:file});mutate(company,c=>({...c,sources}));return sources[0]?.id;
 }
 export async function toggleSource(company:string,id:string) {
  if(!isFixture(company)){const source=state[company].sources.find(s=>s.id===id);const sources=await api<Source[]>('/company/sources/'+id,{method:'PUT',body:JSON.stringify({expected_version:source?.version})});mutate(company,c=>({...c,sources}));return;}

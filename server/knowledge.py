@@ -83,6 +83,7 @@ def extract_file(data: bytes, name: str) -> str:
             reader = PdfReader(io.BytesIO(data))
             if len(reader.pages) > 50: raise KnowledgeError('too_many_pdf_pages')
             text = '\n'.join(page.extract_text() or '' for page in reader.pages)
+            if not text.strip(): raise KnowledgeError('pdf_no_extractable_text')
         elif suffix == '.docx': text = '\n'.join(paragraph.text for paragraph in Document(io.BytesIO(data)).paragraphs)
         elif suffix == '.csv':
             rows = csv.reader(io.StringIO(data.decode('utf-8-sig')))

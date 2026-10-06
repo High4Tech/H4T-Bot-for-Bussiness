@@ -1,5 +1,13 @@
 # Local verification — 6 October 2026
 
+## PDF upload diagnosis and workflow pass — 6 October
+
+- Inspected only local upload/processing metadata and response engine labels. The recent upload request returned HTTP 401 after the dashboard session expired. No PDF source exists in the active database; the sole stored source is an older TXT Draft with no index. Three recent bot responses were `no_evidence`. The user's PDF bytes were never saved, so that particular document could not be extracted or answered from.
+- The UI now takes an expired owner session back to sign-in with a clear message that the file was not saved. A successful upload shows a direct **Publish & index** action and explains that only Ready sources answer questions. Dashboard and assistant status copy now describe the active local AI engine, and Demo billing shows the real local AI answer count.
+- Generated text-based and blank/scanned-style PDFs exercised upload, publication, job processing and retrieval in isolated SQLite and PostgreSQL tests: nine focused AI cases passed with one existing Starlette/TestClient deprecation warning. An image-only PDF reports `pdf_no_extractable_text` so OCR needs are visible.
+- A disposable two-company fixture indexed a real generated PDF with local 384-dimensional embeddings and received an Ollama answer citing `verified-facts.pdf`; an unsupported question returned `no_evidence`. PDF indexing took 11.56 seconds including initial model startup and the two visitor requests together took 4.56 seconds. The specific user PDF was not tested because it was not stored.
+- Docker CLI exists but its Linux engine was unavailable on this PC during this pass. No container was started and no production hosting cost or model quality was benchmarked.
+
 ## Local AI engine pass — 6 October
 
 - Installed the local AI dependencies and saved `sentence-transformers/all-MiniLM-L6-v2` under ignored `.local/models/`; a local encode check returned one normalized 384-dimensional vector. Ollama `llama3.2:latest` was already installed on this PC and answered through its loopback API. No model was trained.

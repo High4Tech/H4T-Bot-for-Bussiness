@@ -1,14 +1,27 @@
 """Local RAG contract: isolation, versioning, evidence, and handoff."""
 import json
 import secrets
+from io import BytesIO
 import pytest
 from fastapi.testclient import TestClient
+from pypdf import PdfWriter
+from pypdf.generic import DecodedStreamObject,DictionaryObject,NameObject
 from server import ai, knowledge
 from server.app import password_hash
 from tests.test_product import ORIGIN, PASSWORD, owner, visitor, write
 
 def vectorize(values):
     return [[1.0]+[0.0]*383 for _ in values]
+
+def sample_pdf(text: str = '') -> bytes:
+    writer=PdfWriter();page=writer.add_blank_page(width=612,height=792)
+    if text:
+        font=DictionaryObject({NameObject('/Type'):NameObject('/Font'),NameObject('/Subtype'):NameObject('/Type1'),NameObject('/BaseFont'):NameObject('/Helvetica')})
+        page[NameObject('/Resources')]=DictionaryObject({NameObject('/Font'):DictionaryObject({NameObject('/F1'):writer._add_object(font)})})
+        stream=DecodedStreamObject();stream.set_data(('BT /F1 12 Tf 72 700 Td ('+text+') Tj ET').encode('ascii'))
+        page[NameObject('/Contents')]=writer._add_object(stream)
+    result=BytesIO();writer.write(result)
+    return result.getvalue()
 
 def publish(client, source_id, version=1):
     result=client.put('/api/company/sources/'+source_id,headers=ORIGIN,json={'expected_version':version})
@@ -56,6 +69,31 @@ def test_existing_published_source_is_queued_by_migration(service):
     service.state.database.migrate()
     current=client.get('/api/company/workspace').json()['sources'][0]
     assert current['indexStatus']=='queued'
+
+def test_text_pdf_indexes_and_scanned_pdf_reports_clear_failure(service):
+    unauthenticated=TestClient(service).post('/api/company/sources/upload',headers={**ORIGIN,'X-Filename':'Warranty.pdf'},content=sample_pdf('Not saved.'))
+    assert unauthenticated.status_code==401
+    with service.state.database.connect(plane='admin') as conn:
+        assert conn.execute('SELECT COUNT(*) AS n FROM knowledge_sources').fetchone()['n']==0
+    client,account=owner(service)
+    uploaded=client.post('/api/company/sources/upload',headers={**ORIGIN,'X-Filename':'Warranty.pdf','Content-Type':'application/octet-stream'},content=sample_pdf('Cedar warranty lasts 12 months.'))
+    assert uploaded.status_code==201,uploaded.text
+    source_id=uploaded.json()[0]['id']
+    assert uploaded.json()[0]['indexStatus']=='deferred'
+    publish(client,source_id)
+    job=knowledge.next_job(service.state.database)
+    assert job and knowledge.process_job(service.state.database,job,vectorize)=='ready'
+    hits=knowledge.search(service.state.database,account['companyId'],'warranty duration',vectorize=vectorize)
+    assert hits and '12 months' in hits[0]['text']
+    assert client.get('/api/company/workspace').json()['sources'][0]['indexStatus']=='ready'
+    scanned=client.post('/api/company/sources/upload',headers={**ORIGIN,'X-Filename':'Scanned.pdf','Content-Type':'application/octet-stream'},content=sample_pdf())
+    assert scanned.status_code==201
+    scanned_id=scanned.json()[0]['id']
+    publish(client,scanned_id)
+    job=knowledge.next_job(service.state.database)
+    assert job and knowledge.process_job(service.state.database,job,vectorize)=='failed'
+    failed=next(source for source in client.get('/api/company/workspace').json()['sources'] if source['id']==scanned_id)
+    assert failed['indexError']=='pdf_no_extractable_text'
 
 def test_generation_requires_valid_source_citation_and_rejects_new_numbers(monkeypatch):
     evidence=[{'sourceId':'source-one','version':2,'title':'Hours','url':None,'text':'Support is open from 9 AM to 5 PM.','score':.8}]

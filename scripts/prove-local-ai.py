@@ -1,9 +1,12 @@
 """Run a disposable two-company fixture through real local embeddings and Ollama."""
 from pathlib import Path
+from io import BytesIO
 import json
 import sys
 import tempfile
 import time
+from pypdf import PdfWriter
+from pypdf.generic import DecodedStreamObject,DictionaryObject,NameObject
 
 sys.path.insert(0,str(Path(__file__).resolve().parent.parent))
 from fastapi.testclient import TestClient
@@ -11,6 +14,15 @@ from server import ai, knowledge
 from server.app import create_app
 
 ORIGIN={'Origin':'http://127.0.0.1:5173'}
+
+def text_pdf(text: str) -> bytes:
+    writer=PdfWriter();page=writer.add_blank_page(width=612,height=792)
+    font=DictionaryObject({NameObject('/Type'):NameObject('/Font'),NameObject('/Subtype'):NameObject('/Type1'),NameObject('/BaseFont'):NameObject('/Helvetica')})
+    page[NameObject('/Resources')]=DictionaryObject({NameObject('/Font'):DictionaryObject({NameObject('/F1'):writer._add_object(font)})})
+    stream=DecodedStreamObject();stream.set_data(('BT /F1 12 Tf 72 700 Td ('+text+') Tj ET').encode('ascii'))
+    page[NameObject('/Contents')]=writer._add_object(stream)
+    result=BytesIO();writer.write(result)
+    return result.getvalue()
 
 def main():
     if not ai.model_ready(): raise SystemExit('Configured Ollama model is unavailable on loopback.')
@@ -25,7 +37,9 @@ def main():
             registered=client.post('/api/auth/register',headers=ORIGIN,json={'email':key+'@example.test','password':'Synthetic-Local-Proof-Only-2026','name':'Fixture owner','company':name})
             assert registered.status_code==201,registered.text
             account=registered.json()
-            uploaded=client.post('/api/company/sources/upload',headers={**ORIGIN,'X-Filename':'verified-facts.txt','Content-Type':'application/octet-stream'},content=source.encode())
+            filename='verified-facts.pdf' if key=='cedar' else 'verified-facts.txt'
+            content=text_pdf(source) if key=='cedar' else source.encode()
+            uploaded=client.post('/api/company/sources/upload',headers={**ORIGIN,'X-Filename':filename,'Content-Type':'application/octet-stream'},content=content)
             assert uploaded.status_code==201,uploaded.text
             sid=uploaded.json()[0]['id']
             published=client.put('/api/company/sources/'+sid,headers=ORIGIN,json={'expected_version':1})
@@ -60,6 +74,6 @@ def main():
         assert unknown.status_code==200,unknown.text
         unknown_reply=unknown.json()['messages'][-1]
         assert unknown_reply['engine'] in ('no_evidence','clarification'),unknown_reply
-        print(json.dumps({'model':ai.MODEL,'embedding_dimensions':384,'companies':2,'indexed_seconds':indexed,'answer_seconds':round(time.perf_counter()-started,2),'answer':reply['text'],'citation_titles':[c['title'] for c in reply['citations']],'unknown_engine':unknown_reply['engine']},indent=2))
+        print(json.dumps({'model':ai.MODEL,'embedding_dimensions':384,'companies':2,'source_types':['PDF','TXT'],'indexed_seconds':indexed,'answer_seconds':round(time.perf_counter()-started,2),'answer':reply['text'],'citation_titles':[c['title'] for c in reply['citations']],'unknown_engine':unknown_reply['engine']},indent=2))
 
 if __name__=='__main__': main()

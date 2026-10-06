@@ -8,11 +8,12 @@ export default function Assistant({company,go,onPreview,connectionError}:Props){
   const data=useCompany(company);
   const {config}=data;
   const published=data.sources.filter(source=>source.status==='Demo published').length;
+  const ready=data.sources.filter(source=>source.status==='Demo published'&&source.indexStatus==='ready').length;
   const waiting=data.conversations.filter(conversation=>conversation.status==='HUMAN_REQUESTED').length;
   const storageReady=!connectionError&&data.database?.status==='ok';
   const steps=[
     {icon:'appearance',title:'Make it feel like you',description:'Your name, colors and a welcome in your own words.',label:'Edit appearance',page:'appearance',detail:'Brand configured'},
-    {icon:'knowledge',title:'Give it the right knowledge',description:'Collect the websites and files your answers will come from.',label:'Manage knowledge',page:'knowledge',detail:data.sources.length+' sources saved'},
+    {icon:'knowledge',title:'Give it the right knowledge',description:'Upload, publish and index the websites and files your answers will come from.',label:'Manage knowledge',page:'knowledge',detail:ready+' sources ready'},
     {icon:'channels',title:'Bring it to your customers',description:'Preview your website widget and prepare your channel setup.',label:'Explore channels',page:'channels',detail:'Local website preview'},
   ];
 
@@ -24,7 +25,7 @@ export default function Assistant({company,go,onPreview,connectionError}:Props){
         <p>A familiar face.<br/><span>A welcome that feels like {config.name}.</span></p>
         <div className="assistant-description">One assistant, shaped around your brand and the knowledge you choose to share.</div>
         <div className="action-row"><Button variant="primary" onClick={onPreview}>Open your preview <Icon name="arrow"/></Button><Button onClick={()=>go('appearance')}><Icon name="appearance"/>Customize</Button></div>
-        <div className="assistant-identity-foot"><span className="assistant-mode-dot"/>Scripted preview<span className="separator-dot">·</span>AI setup comes next</div>
+        <div className="assistant-identity-foot"><span className="assistant-mode-dot"/>Local AI assistant<span className="separator-dot">·</span>Answers use Ready sources</div>
       </div>
       <div className="assistant-brand-stage" style={{'--business-accent':config.color} as CSSProperties}>
         <div className="assistant-stage-label"><span>THE FACE OF YOUR BUSINESS</span><Icon name="sparkle"/></div>
@@ -36,7 +37,7 @@ export default function Assistant({company,go,onPreview,connectionError}:Props){
 
     <div className="assistant-status-grid" aria-label="Assistant status">
       <section className="panel assistant-status"><span className="status-symbol"><Icon name="shield"/></span><div><span>Workspace storage</span><strong>{storageReady?'Saved on this PC':'Connection needs attention'}</strong><small>{storageReady?'Accounts, files and conversations persist.':'Check the connection notice above.'}</small></div></section>
-      <section className="panel assistant-status"><span className="status-symbol"><Icon name="knowledge"/></span><div><span>Knowledge library</span><strong>{data.sources.length} {data.sources.length===1?'source':'sources'} saved</strong><small>{published} Demo published · indexing comes later.</small></div></section>
+      <section className="panel assistant-status"><span className="status-symbol"><Icon name="knowledge"/></span><div><span>Knowledge library</span><strong>{ready} {ready===1?'source':'sources'} ready for answers</strong><small>{published} published · {data.sources.length-published} drafts. Publish, then wait for Ready.</small></div></section>
       <section className="panel assistant-status"><span className="status-symbol"><Icon name="inbox"/></span><div><span>Human handoff</span><strong>{waiting?`${waiting} ${waiting===1?'conversation':'conversations'} waiting`:'Your team can take over'}</strong><small>From your 50 most recent conversations.</small></div></section>
     </div>
 
