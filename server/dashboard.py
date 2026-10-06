@@ -103,7 +103,7 @@ def install_dashboard_routes(app, database, company_user, conversation):
             row=conn.execute(database.locked('SELECT visitor_id,version FROM conversations WHERE id=? AND company_id=?'),(cid,company)).fetchone()
             if not row: raise HTTPException(404,'Conversation not found.')
             if row['version']!=data.expected_version: raise HTTPException(409,'Conversation changed. Refresh before deleting.')
-            for table in ['message_requests','visitor_tokens','messages']:
+            for table in ['ai_turns','message_requests','visitor_tokens','messages']:
                 conn.execute('DELETE FROM '+table+' WHERE company_id=? AND conversation_id=?',(company,cid))
             conn.execute('DELETE FROM conversations WHERE company_id=? AND id=?',(company,cid))
             remaining=conn.execute('SELECT COUNT(*) AS n FROM conversations WHERE company_id=? AND visitor_id=?',(company,row['visitor_id'])).fetchone()['n']

@@ -55,7 +55,7 @@ def test_sources_files_versions_restart_and_tenant_boundary(service):
     with service.state.db(company=ua['companyId']) as conn:
         versions=conn.execute('SELECT COUNT(*) AS n FROM source_versions WHERE source_id=?',(sid,)).fetchone()['n']
         assert versions==2
-        assert conn.execute("SELECT COUNT(*) AS n FROM ingestion_jobs WHERE status!='deferred'").fetchone()['n']==0
+        assert conn.execute("SELECT COUNT(*) AS n FROM ingestion_jobs WHERE status NOT IN ('deferred','queued')").fetchone()['n']==0
     assert a.delete('/api/company/sources/'+fileid,headers=ORIGIN).status_code==200
     assert a.get('/api/company/sources/'+fileid+'/file').status_code==404
     assert b.get('/api/company/workspace').json()['sources']==[]

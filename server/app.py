@@ -13,6 +13,7 @@ from fastapi import FastAPI, HTTPException, Request, Response, Depends
 from pydantic import BaseModel, Field
 from server.database import Database, INTEGRITY_ERRORS
 from server.product import install_product_routes
+from server import ai, knowledge
 from starlette.middleware.trustedhost import TrustedHostMiddleware
 
 CHANNELS = ("web", "whatsapp", "facebook", "wordpress", "shopify")
@@ -154,7 +155,13 @@ def create_app(db_path: Path | str | None = None, db_config=None):
 
     @app.get("/api/health")
     def health():
-        return {"status": "ok", "runtime": "local", "ai": "deferred", "database": database.health()}
+        return {"status": "ok", "runtime": "local", "ai": "local-rag-configured" if (knowledge.MODEL_DIR/'modules.json').exists() else "setup-required", "database": database.health()}
+
+    @app.get('/api/engine/status')
+    def engine_status():
+        embeddings=(knowledge.MODEL_DIR/'modules.json').exists()
+        generation=ai.model_ready()
+        return {'mode':'local-rag' if embeddings and generation else 'setup-required','embeddings':embeddings,'generation':generation,'model':ai.MODEL if generation else None}
 
     @app.post("/api/auth/register", status_code=201)
     def register(data: Registration, request: Request, response: Response):
@@ -224,7 +231,7 @@ def create_app(db_path: Path | str | None = None, db_config=None):
             row = conn.execute("SELECT appearance FROM public_assistant_appearance WHERE bot_id=?", (bot_id,)).fetchone()
         if not row:
             raise HTTPException(404, "Assistant not found.")
-        return {"appearance": json.loads(row["appearance"]), "mode": "scripted-local-preview"}
+        return {"appearance": json.loads(row["appearance"]), "mode": "local-rag" if (knowledge.MODEL_DIR/'modules.json').exists() and ai.model_ready() else "setup-required"}
 
     @app.get("/api/company/channels")
     def channels(user=Depends(company_user)):
@@ -308,10 +315,10 @@ def create_app(db_path: Path | str | None = None, db_config=None):
     @app.get("/api/platform/companies")
     def platform_companies(user=Depends(platform_user)):
         with db(plane="platform") as conn:
-            rows = conn.execute("SELECT id,name,bot_id,created,plan FROM platform_company_metadata ORDER BY created DESC").fetchall()
+            rows = conn.execute("SELECT id,name,bot_id,created,plan,answers FROM platform_company_metadata ORDER BY created DESC").fetchall()
         # Deliberately exclude appearance, knowledge, profiles and event payloads.
         return [{"id": r["id"], "name": r["name"], "botId": r["bot_id"], "bots": 1,
-                 "plan": r["plan"] + " · Demo", "status": "Local account", "answers": 0} for r in rows]
+                 "plan": r["plan"] + " · Demo", "status": "Local account", "answers": r["answers"]} for r in rows]
 
     install_product_routes(app, database, company_user)
     return app

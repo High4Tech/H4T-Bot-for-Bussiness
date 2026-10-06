@@ -1,10 +1,11 @@
-import {useEffect,useState,type FormEvent} from 'react';
+import {useEffect,useState} from 'react';
 import Widget from './Widget';
 import Channels from './Channels';
+import Knowledge from './Knowledge';
 import Assistant from './Assistant';
 import {useAuth} from './Auth';
 import {type BotConfig} from './demo-model.mjs';
-import {addSource,removeSource,saveConfig,toggleSource,useCompany,refreshWorkspace,uploadSource,savePlan} from './store';
+import {saveConfig,useCompany,refreshWorkspace,savePlan} from './store';
 import {Badge,Brand,Button,Field,Icon} from './ui';
 import {GoOverview,GoChats} from './GoData';
 import {GoSettings,GoTeam} from './GoSettings';
@@ -62,14 +63,6 @@ export default function Dashboard(){
     </main></div>
     {testOpen&&<div className="test-overlay"><button className="test-backdrop" aria-label="Close widget preview" onClick={()=>setTestOpen(false)}/><div className="test-widget"><Widget key={company} company={company} onClose={()=>setTestOpen(false)}/></div></div>}
   </div>;
-}
-function Knowledge({company}:{company:string}){
-  const data=useCompany(company);const [url,setUrl]=useState('');const [notice,setNotice]=useState('');const [kind,setKind]=useState<'website'|'file'|''>('');
-  async function submit(e:FormEvent){e.preventDefault();try{const parsed=new URL(url);if(!['http:','https:'].includes(parsed.protocol))throw new Error('Enter a valid http or https URL.');await addSource(company,parsed.hostname+parsed.pathname,'Website',parsed.href);setUrl('');setNotice('Website source saved locally. Fetching and indexing are deferred.');setKind('');}catch(e){setNotice((e as Error).message);}}
-  return <><div className="source-cards"><button className="source-card" onClick={()=>setKind('website')}><span className="source-icon"><Icon name="website"/></span><h2>Website</h2><p>Save a website source</p><span>Connect a source ↗</span></button><button className="source-card" onClick={()=>setKind('file')}><span className="source-icon"><Icon name="knowledge"/></span><h2>Upload a file</h2><p>Store a file privately on this PC</p><span>Add a local file ↗</span></button><div className="source-explainer"><Badge>Knowledge, not training</Badge><h3>Good answers start<br/>with good sources.</h3><p>Published knowledge will ground future answers. Files and source versions are stored locally. Extraction and indexing are deferred.</p></div></div>
-  {kind==='website'&&<form className="panel source-form" onSubmit={submit}><Field label="Website URL" type="url" required value={url} onChange={e=>setUrl(e.target.value)} placeholder="https://company.example/help"/><Button variant="primary">Add demo source</Button><Button type="button" onClick={()=>setKind('')}>Cancel</Button></form>}
-  {kind==='file'&&<div className="panel source-form"><label className="field">Local file<input type="file" accept=".txt,.pdf,.docx,.csv" onChange={async e=>{const file=e.target.files?.[0];if(!file)return;if(file.size>10*1024*1024){setNotice('Choose a sample file under 10 MB.');return;}try{await uploadSource(company,file);setNotice('File saved privately on this PC. Extraction and indexing are deferred.');setKind('');}catch(e){setNotice((e as Error).message);}}}/></label><Button onClick={()=>setKind('')}>Cancel</Button></div>}
-  {notice&&<p role="status" className="inline-notice">{notice}</p>}<section className="panel"><div className="section-heading"><div><h2>Your sources <Badge>{data.sources.length}</Badge></h2><p>Source versions are saved. Demo publication does not run AI indexing.</p></div></div><div className="table-scroll"><table><thead><tr><th>Source</th><th>Type</th><th>Version</th><th>Status</th><th>Actions</th></tr></thead><tbody>{data.sources.map(s=><tr key={s.id}><td><span className="table-name"><Icon name={s.kind==='Website'?'website':'knowledge'}/>{s.name}</span></td><td>{s.kind}</td><td>v{s.version}</td><td><Badge tone={s.status==='Draft'?'neutral':'success'}>{s.status}</Badge></td><td><div className="action-row"><Button onClick={()=>void toggleSource(company,s.id).catch(e=>setNotice(e.message))}>{s.status==='Draft'?'Demo publish':'Unpublish'}</Button><Button variant="ghost" onClick={()=>void removeSource(company,s.id).catch(e=>setNotice(e.message))}>Archive</Button></div></td></tr>)}</tbody></table>{data.sources.length===0&&<div className="empty-state">No sources saved. Add one above.</div>}</div></section></>;
 }
 function Appearance({company}:{company:string}){
   const data=useCompany(company);const [draft,setDraft]=useState<BotConfig>({...data.config});const [notice,setNotice]=useState('');

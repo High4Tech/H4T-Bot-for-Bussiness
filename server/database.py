@@ -30,7 +30,12 @@ CREATE TABLE IF NOT EXISTS source_versions(
  created DOUBLE PRECISION NOT NULL,PRIMARY KEY(source_id,version),FOREIGN KEY(source_id,company_id) REFERENCES knowledge_sources(id,company_id),UNIQUE(source_id,company_id,version));
 CREATE TABLE IF NOT EXISTS ingestion_jobs(
  id TEXT PRIMARY KEY,company_id TEXT NOT NULL,source_id TEXT NOT NULL,version INTEGER NOT NULL,status TEXT NOT NULL DEFAULT 'deferred',created DOUBLE PRECISION NOT NULL,
+ updated DOUBLE PRECISION NOT NULL DEFAULT 0,error TEXT NOT NULL DEFAULT '',attempts INTEGER NOT NULL DEFAULT 0,
  FOREIGN KEY(source_id,company_id,version) REFERENCES source_versions(source_id,company_id,version),UNIQUE(source_id,version));
+CREATE TABLE IF NOT EXISTS knowledge_chunks(
+ id TEXT PRIMARY KEY,company_id TEXT NOT NULL,source_id TEXT NOT NULL,version INTEGER NOT NULL,ordinal INTEGER NOT NULL,
+ content TEXT NOT NULL,embedding TEXT NOT NULL,created DOUBLE PRECISION NOT NULL,
+ FOREIGN KEY(source_id,company_id,version) REFERENCES source_versions(source_id,company_id,version),UNIQUE(source_id,version,ordinal));
 CREATE TABLE IF NOT EXISTS visitors(
  id TEXT PRIMARY KEY,company_id TEXT NOT NULL REFERENCES companies(id),name TEXT NOT NULL,email TEXT NOT NULL DEFAULT '',consent INTEGER NOT NULL DEFAULT 0,
  created DOUBLE PRECISION NOT NULL,UNIQUE(id,company_id));
@@ -48,6 +53,9 @@ CREATE TABLE IF NOT EXISTS messages(
 CREATE TABLE IF NOT EXISTS message_requests(
  company_id TEXT NOT NULL,conversation_id TEXT NOT NULL,request_id TEXT NOT NULL,created DOUBLE PRECISION NOT NULL,
  PRIMARY KEY(conversation_id,request_id),FOREIGN KEY(conversation_id,company_id) REFERENCES conversations(id,company_id));
+CREATE TABLE IF NOT EXISTS ai_turns(
+ company_id TEXT NOT NULL,conversation_id TEXT NOT NULL,request_id TEXT NOT NULL,status TEXT NOT NULL,created DOUBLE PRECISION NOT NULL,
+ PRIMARY KEY(conversation_id,request_id),FOREIGN KEY(conversation_id,company_id) REFERENCES conversations(id,company_id));
 CREATE TABLE IF NOT EXISTS subscriptions(
  company_id TEXT PRIMARY KEY REFERENCES companies(id),plan TEXT NOT NULL DEFAULT 'Starter' CHECK(plan IN ('Starter','Growth','Business')),updated DOUBLE PRECISION NOT NULL);
 CREATE TABLE IF NOT EXISTS demo_invoices(
@@ -61,18 +69,20 @@ CREATE TABLE IF NOT EXISTS audit_events(
 CREATE INDEX IF NOT EXISTS sources_company ON knowledge_sources(company_id,deleted_at);
 CREATE INDEX IF NOT EXISTS conversations_company_updated ON conversations(company_id,updated);
 CREATE INDEX IF NOT EXISTS messages_conversation ON messages(company_id,conversation_id,sequence);
+CREATE INDEX IF NOT EXISTS chunks_tenant_source ON knowledge_chunks(company_id,source_id,version);
+CREATE INDEX IF NOT EXISTS jobs_pending ON ingestion_jobs(status,created);
 CREATE INDEX IF NOT EXISTS visitor_token_expiry ON visitor_tokens(expires);
 CREATE INDEX IF NOT EXISTS sessions_expiry ON sessions(expires);
 CREATE INDEX IF NOT EXISTS usage_company_created ON usage_events(company_id,created);
 CREATE VIEW IF NOT EXISTS platform_company_metadata AS
- SELECT c.id,c.name,c.bot_id,c.created,COALESCE(s.plan,'Starter') AS plan,1 AS bots,0 AS answers,
+ SELECT c.id,c.name,c.bot_id,c.created,COALESCE(s.plan,'Starter') AS plan,1 AS bots,CAST((SELECT COUNT(*) FROM usage_events u WHERE u.company_id=c.id AND u.kind='local_ai_answer') AS INTEGER) AS answers,
  (SELECT COUNT(*) FROM conversations v WHERE v.company_id=c.id) AS conversations,
  (SELECT COUNT(*) FROM messages m WHERE m.company_id=c.id) AS messages,
  (SELECT COALESCE(SUM(bytes),0) FROM source_versions sv WHERE sv.company_id=c.id AND sv.version=1) AS storage_bytes
  FROM companies c LEFT JOIN subscriptions s ON s.company_id=c.id;
 CREATE VIEW IF NOT EXISTS public_assistant_appearance AS SELECT bot_id,appearance FROM companies;
 """
-PRIVATE_TABLES = ['workspace_preferences','knowledge_sources','source_versions','ingestion_jobs','visitors','conversations','visitor_tokens','messages','message_requests','subscriptions','demo_invoices','usage_events','audit_events','channel_events']
+PRIVATE_TABLES = ['workspace_preferences','knowledge_sources','source_versions','ingestion_jobs','knowledge_chunks','visitors','conversations','visitor_tokens','messages','message_requests','ai_turns','subscriptions','demo_invoices','usage_events','audit_events','channel_events']
 
 class PgConnection:
     def __init__(self, connection): self.connection = connection
@@ -117,8 +127,25 @@ class Database:
         with self.connect(plane) as connection:
             if not self.postgres: connection.execute('PRAGMA journal_mode=WAL')
             connection.executescript(BASE_SCHEMA + PRODUCT_SCHEMA + "CREATE TABLE IF NOT EXISTS schema_migrations(version INTEGER PRIMARY KEY,applied DOUBLE PRECISION NOT NULL);")
+            if self.postgres:
+                connection.execute('ALTER TABLE ingestion_jobs ADD COLUMN IF NOT EXISTS updated DOUBLE PRECISION NOT NULL DEFAULT 0')
+                connection.execute("ALTER TABLE ingestion_jobs ADD COLUMN IF NOT EXISTS error TEXT NOT NULL DEFAULT ''")
+                connection.execute('ALTER TABLE ingestion_jobs ADD COLUMN IF NOT EXISTS attempts INTEGER NOT NULL DEFAULT 0')
+                connection.execute("ALTER TABLE messages ADD COLUMN IF NOT EXISTS citations TEXT NOT NULL DEFAULT '[]'")
+                connection.execute("ALTER TABLE messages ADD COLUMN IF NOT EXISTS engine TEXT NOT NULL DEFAULT 'scripted'")
+                connection.execute("CREATE INDEX IF NOT EXISTS chunks_search ON knowledge_chunks USING GIN (to_tsvector('simple',content))")
+            else:
+                jobs_columns={row['name'] for row in connection.execute('PRAGMA table_info(ingestion_jobs)').fetchall()}
+                if 'updated' not in jobs_columns: connection.execute('ALTER TABLE ingestion_jobs ADD COLUMN updated DOUBLE PRECISION NOT NULL DEFAULT 0')
+                if 'error' not in jobs_columns: connection.execute("ALTER TABLE ingestion_jobs ADD COLUMN error TEXT NOT NULL DEFAULT ''")
+                if 'attempts' not in jobs_columns: connection.execute('ALTER TABLE ingestion_jobs ADD COLUMN attempts INTEGER NOT NULL DEFAULT 0')
+                columns={row['name'] for row in connection.execute('PRAGMA table_info(messages)').fetchall()}
+                if 'citations' not in columns: connection.execute("ALTER TABLE messages ADD COLUMN citations TEXT NOT NULL DEFAULT '[]'")
+                if 'engine' not in columns: connection.execute("ALTER TABLE messages ADD COLUMN engine TEXT NOT NULL DEFAULT 'scripted'")
+            connection.execute("UPDATE ingestion_jobs SET status='queued',updated=? WHERE status='deferred' AND EXISTS (SELECT 1 FROM knowledge_sources s WHERE s.id=ingestion_jobs.source_id AND s.company_id=ingestion_jobs.company_id AND s.version=ingestion_jobs.version AND s.status='Demo published' AND s.deleted_at IS NULL)",(time.time(),))
             connection.execute("INSERT INTO schema_migrations VALUES(2,?) ON CONFLICT(version) DO NOTHING", (time.time(),))
             connection.execute("INSERT INTO schema_migrations VALUES(3,?) ON CONFLICT(version) DO NOTHING", (time.time(),))
+            connection.execute("INSERT INTO schema_migrations VALUES(4,?) ON CONFLICT(version) DO NOTHING", (time.time(),))
             connection.execute("INSERT INTO subscriptions(company_id,plan,updated) SELECT id,'Starter',? FROM companies WHERE 1=1 ON CONFLICT(company_id) DO NOTHING", (time.time(),))
 
     def health(self):

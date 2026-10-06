@@ -51,7 +51,7 @@ def main():
     config=json.loads(CONFIG.read_text()) if CONFIG.exists() else {'engine':'postgresql'}
     with psycopg.connect(admin,autocommit=True) as conn:
         if not conn.execute("SELECT 1 FROM pg_database WHERE datname='h4t_bot'").fetchone(): conn.execute('CREATE DATABASE h4t_bot')
-        for plane in ['auth','app','ingest','platform']:
+        for plane in ['auth','app','ingest','platform','worker']:
             role='h4t_'+plane
             if plane+'_url' not in config:
                 password=secrets.token_urlsafe(32)
@@ -69,7 +69,7 @@ def main():
         with sqlite3.connect(old) as source, sqlite3.connect(backup) as target: source.backup(target)
         with sqlite3.connect(backup) as source, psycopg.connect(config['admin_url']) as target:
             # Ordered to satisfy foreign keys. No data is copied outside this PC.
-            tables=['companies','users','sessions','channels','channel_events','workspace_preferences','knowledge_sources','source_versions','ingestion_jobs','visitors','conversations','visitor_tokens','messages','message_requests','subscriptions','demo_invoices','usage_events','audit_events']
+            tables=['companies','users','sessions','channels','channel_events','workspace_preferences','knowledge_sources','source_versions','ingestion_jobs','knowledge_chunks','visitors','conversations','visitor_tokens','messages','message_requests','ai_turns','subscriptions','demo_invoices','usage_events','audit_events']
             for table in tables:
                 if not source.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name=?",(table,)).fetchone(): continue
                 rows=source.execute('SELECT * FROM '+table).fetchall()
@@ -82,6 +82,6 @@ def main():
         apply_security(conn)
     temporary=CONFIG.with_suffix('.tmp')
     temporary.write_text(json.dumps(config,indent=2)); temporary.replace(CONFIG)
-    print(f'PostgreSQL running on 127.0.0.1:{bootstrap["port"]}; database h4t_bot; schema v3; imported {imported} rows. Customer RLS and operator metadata grants applied.')
+    print(f'PostgreSQL running on 127.0.0.1:{bootstrap["port"]}; database h4t_bot; schema v4; imported {imported} rows. Customer RLS and operator metadata grants applied.')
 
 if __name__=='__main__': main()

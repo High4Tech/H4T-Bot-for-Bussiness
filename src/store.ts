@@ -1,9 +1,10 @@
 import {useSyncExternalStore} from 'react';
 import {companyDefaults, allowedTransition, mergeDemoConversations, type BotConfig} from './demo-model.mjs';
 import {api} from './api';
-export type Message = {id:string;role:'visitor'|'bot'|'agent';text:string};
+export type Citation={sourceId:string;version:number;title:string;url:string|null;snippet:string};
+export type Message = {id:string;role:'visitor'|'bot'|'agent';text:string;citations?:Citation[];engine?:string};
 export type Conversation = {id:string;company:string;name:string;email:string;status:string;version?:number;created?:number;messages:Message[]};
-export type Source = {id:string;name:string;kind:'Website'|'File';status:'Demo published'|'Draft';version:number};
+export type Source = {id:string;name:string;kind:'Website'|'File';status:'Demo published'|'Draft';version:number;indexStatus?:string;indexError?:string;chunks?:number};
 export type BillingData={plan:string;demo:boolean;invoices:{id:string;plan:string;cents:number;status:string;created:number}[]};
 export type Company = {config:BotConfig;sources:Source[];conversations:Conversation[];billing?:BillingData;database?:{engine:string;status:string;schemaVersion:number}};
 const configKey = 'h4t.demo.appearance.v1';
@@ -105,6 +106,12 @@ export async function uploadSource(company:string,file:File){
 export async function toggleSource(company:string,id:string) {
  if(!isFixture(company)){const source=state[company].sources.find(s=>s.id===id);const sources=await api<Source[]>('/company/sources/'+id,{method:'PUT',body:JSON.stringify({expected_version:source?.version})});mutate(company,c=>({...c,sources}));return;}
  mutate(company,c=>({...c,sources:c.sources.map(s=>s.id===id?{...s,status:s.status==='Draft'?'Demo published':'Draft',version:s.version+1}:s)}));
+}
+export async function processSource(company:string,id:string){
+ if(isFixture(company))return;
+ const source=state[company].sources.find(s=>s.id===id);
+ const sources=await api<Source[]>('/company/sources/'+id+'/process',{method:'POST',body:JSON.stringify({expected_version:source?.version})});
+ mutate(company,c=>({...c,sources}));
 }
 export async function removeSource(company:string,id:string) {
  if(!isFixture(company)){const sources=await api<Source[]>('/company/sources/'+id,{method:'DELETE'});mutate(company,c=>({...c,sources}));return;}

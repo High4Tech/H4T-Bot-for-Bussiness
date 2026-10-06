@@ -1,4 +1,4 @@
-"""Durable local product data. Replies are scripted; ingestion and AI stay deferred."""
+"""Durable tenant-scoped product data and local assistant conversation routes."""
 import hashlib
 import hmac
 import json
@@ -10,6 +10,7 @@ from urllib.parse import urlparse, unquote, quote
 from fastapi import Depends, HTTPException, Request
 from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
+from server import ai, knowledge
 
 class SourceInput(BaseModel):
     name: str = Field(min_length=1, max_length=240)
@@ -37,13 +38,6 @@ class PlanInput(BaseModel):
 
 TRANSITIONS = {'BOT_ACTIVE':['HUMAN_REQUESTED','HUMAN_ASSIGNED','RESOLVED'], 'HUMAN_REQUESTED':['HUMAN_ASSIGNED','RESOLVED'], 'HUMAN_ASSIGNED':['BOT_ACTIVE','RESOLVED'], 'RESOLVED':['BOT_ACTIVE']}
 
-def scripted_reply(text):
-    if re.search('person|human|agent|handoff', text, re.I):
-        return 'Your request is saved in the local inbox. The assistant is paused until your team responds.', True
-    if re.fullmatch(r'(hi|hello|hey|thanks|thank you)[! .]*', text.strip(), re.I):
-        return 'Hello! This is a scripted local preview. What would you like to explore?', False
-    return 'AI and knowledge retrieval are not connected yet. Your message is saved locally; you can request a person for help.', False
-
 def install_product_routes(app, database, company_user):
     attempts = defaultdict(deque)
     def throttle(key, limit, seconds):
@@ -64,11 +58,12 @@ def install_product_routes(app, database, company_user):
     def conversation(conn, company, cid):
         row=conn.execute('SELECT c.*,v.name,v.email FROM conversations c JOIN visitors v ON v.id=c.visitor_id AND v.company_id=c.company_id WHERE c.id=? AND c.company_id=?', (cid,company)).fetchone()
         if not row: raise HTTPException(404,'Conversation not found.')
-        messages=conn.execute('SELECT id,role,text,sequence,created FROM messages WHERE company_id=? AND conversation_id=? ORDER BY sequence DESC LIMIT 200',(company,cid)).fetchall()
-        return dict(id=row['id'],company=company,name=row['name'],email=row['email'],status=row['status'],version=row['version'],channel=row['channel'],created=row['created'],updated=row['updated'],messages=[dict(m) for m in reversed(messages)])
+        messages=conn.execute('SELECT id,role,text,sequence,created,citations,engine FROM messages WHERE company_id=? AND conversation_id=? ORDER BY sequence DESC LIMIT 200',(company,cid)).fetchall()
+        items=[{**dict(m),'citations':json.loads(m['citations'])} for m in reversed(messages)]
+        return dict(id=row['id'],company=company,name=row['name'],email=row['email'],status=row['status'],version=row['version'],channel=row['channel'],created=row['created'],updated=row['updated'],messages=items)
 
     def list_sources(conn, company):
-        return [dict(r) for r in conn.execute('SELECT id,name,kind,status,version,source_url AS url,created FROM knowledge_sources WHERE company_id=? AND deleted_at IS NULL ORDER BY created DESC',(company,)).fetchall()]
+        return [dict(r) for r in conn.execute("SELECT k.id,k.name,k.kind,k.status,k.version,k.source_url AS url,k.created,COALESCE(j.status,'deferred') AS \"indexStatus\",COALESCE(j.error,'') AS \"indexError\",(SELECT COUNT(*) FROM knowledge_chunks c WHERE c.company_id=k.company_id AND c.source_id=k.id AND c.version=k.version) AS chunks FROM knowledge_sources k LEFT JOIN ingestion_jobs j ON j.company_id=k.company_id AND j.source_id=k.id AND j.version=k.version WHERE k.company_id=? AND k.deleted_at IS NULL ORDER BY k.created DESC",(company,)).fetchall()]
 
     from server.dashboard import install_dashboard_routes
     install_dashboard_routes(app,database,company_user,conversation)
@@ -76,12 +71,13 @@ def install_product_routes(app, database, company_user):
     def billing(conn, company):
         sub=conn.execute('SELECT plan FROM subscriptions WHERE company_id=?',(company,)).fetchone()
         invoices=[dict(r) for r in conn.execute('SELECT id,plan,cents,status,created FROM demo_invoices WHERE company_id=? ORDER BY created DESC LIMIT 30',(company,)).fetchall()]
-        return {'plan':sub['plan'] if sub else 'Starter','invoices':invoices,'demo':True,'aiAnswers':0}
+        answers=conn.execute("SELECT COUNT(*) AS count FROM usage_events WHERE company_id=? AND kind='local_ai_answer'",(company,)).fetchone()['count']
+        return {'plan':sub['plan'] if sub else 'Starter','invoices':invoices,'demo':True,'aiAnswers':answers}
 
     def source_version(conn, row):
         previous=conn.execute('SELECT file_key,sha256,bytes FROM source_versions WHERE source_id=? AND company_id=? ORDER BY version DESC LIMIT 1',(row['id'],row['company_id'])).fetchone()
         conn.execute('INSERT INTO source_versions VALUES(?,?,?,?,?,?,?,?)',(row['id'],row['company_id'],row['version'],row['status'],previous['file_key'] if previous else '',previous['sha256'] if previous else '',previous['bytes'] if previous else 0,time.time()))
-        conn.execute('INSERT INTO ingestion_jobs VALUES(?,?,?,?,?,?)',(secrets.token_hex(16),row['company_id'],row['id'],row['version'],'deferred',time.time()))
+        conn.execute('INSERT INTO ingestion_jobs(id,company_id,source_id,version,status,created,updated) VALUES(?,?,?,?,?,?,?)',(secrets.token_hex(16),row['company_id'],row['id'],row['version'],'queued' if row['status']=='Demo published' else 'deferred',time.time(),time.time()))
 
     @app.get('/api/company/workspace')
     def workspace(user=Depends(company_user)):
@@ -89,7 +85,7 @@ def install_product_routes(app, database, company_user):
         with database.connect(company=company) as conn:
             appearance=conn.execute('SELECT appearance FROM companies WHERE id=?',(company,)).fetchone()
             ids=conn.execute('SELECT id FROM conversations WHERE company_id=? ORDER BY updated DESC LIMIT 50',(company,)).fetchall()
-            return {'appearance':json.loads(appearance['appearance']),'sources':list_sources(conn,company),'conversations':[conversation(conn,company,r['id']) for r in ids],'billing':billing(conn,company),'mode':'scripted-local','database':database.health()}
+            return {'appearance':json.loads(appearance['appearance']),'sources':list_sources(conn,company),'conversations':[conversation(conn,company,r['id']) for r in ids],'billing':billing(conn,company),'mode':'local-rag' if (knowledge.MODEL_DIR/'modules.json').exists() else 'knowledge-setup','database':database.health()}
 
     @app.post('/api/company/sources',status_code=201)
     def create_source(data:SourceInput,user=Depends(company_user)):
@@ -125,7 +121,7 @@ def install_product_routes(app, database, company_user):
                 target.write_bytes(content)
                 conn.execute('INSERT INTO knowledge_sources VALUES(?,?,?,?,?,?,?,?,?,?)',(sid,company,name,'File','','Draft',1,None,now,now))
                 conn.execute('INSERT INTO source_versions VALUES(?,?,?,?,?,?,?,?)',(sid,company,1,'Draft',target.name,hashlib.sha256(content).hexdigest(),len(content),now))
-                conn.execute('INSERT INTO ingestion_jobs VALUES(?,?,?,?,?,?)',(secrets.token_hex(16),company,sid,1,'deferred',now))
+                conn.execute('INSERT INTO ingestion_jobs(id,company_id,source_id,version,status,created,updated) VALUES(?,?,?,?,?,?,?)',(secrets.token_hex(16),company,sid,1,'deferred',now,now))
                 audit(conn,company,'file.stored',sid,user['id'])
                 return list_sources(conn,company)
         except Exception:
@@ -151,7 +147,18 @@ def install_product_routes(app, database, company_user):
             status='Draft' if row['status']=='Demo published' else 'Demo published'; version=row['version']+1
             conn.execute('UPDATE knowledge_sources SET status=?,version=?,updated=? WHERE id=? AND company_id=?',(status,version,time.time(),sid,company))
             source_version(conn,dict(id=sid,company_id=company,version=version,status=status))
-            audit(conn,company,'source.preview_status',sid,user['id'])
+            audit(conn,company,'source.publication_changed',sid,user['id'])
+            return list_sources(conn,company)
+
+    @app.post('/api/company/sources/{sid}/process')
+    def process_source(sid:str,data:VersionInput,user=Depends(company_user)):
+        company=user['company_id']
+        with database.connect(company=company,write=True) as conn:
+            source=conn.execute(database.locked('SELECT version,status FROM knowledge_sources WHERE id=? AND company_id=? AND deleted_at IS NULL'),(sid,company)).fetchone()
+            if not source: raise HTTPException(404,'Source not found.')
+            if source['version']!=data.expected_version: raise HTTPException(409,'This source changed. Refresh and try again.')
+            if source['status']!='Demo published': raise HTTPException(409,'Publish this source before processing it.')
+            conn.execute("UPDATE ingestion_jobs SET status='queued',error='',updated=? WHERE source_id=? AND company_id=? AND version=? AND status IN ('deferred','failed','ready','obsolete')",(time.time(),sid,company,source['version']))
             return list_sources(conn,company)
 
     @app.delete('/api/company/sources/{sid}')
@@ -193,31 +200,69 @@ def install_product_routes(app, database, company_user):
     @app.get('/api/visitor/{bot_id}/conversations/{cid}')
     def visitor_conversation(bot_id:str,cid:str,request:Request):
         visitor=identity(request,bot_id,cid)
-        with database.connect(company=visitor['company_id']) as conn: return conversation(conn,visitor['company_id'],cid)
+        with database.connect(company=visitor['company_id'],write=True) as conn:
+            recover_stale_turn(conn,visitor['company_id'],cid)
+            return conversation(conn,visitor['company_id'],cid)
 
-    def append_message(conn,company,cid,role,text):
+    def append_message(conn,company,cid,role,text,citations=None,engine='local-rule'):
         sequence=conn.execute('SELECT COALESCE(MAX(sequence),0)+1 AS next FROM messages WHERE company_id=? AND conversation_id=?',(company,cid)).fetchone()['next']
         if sequence>1000: raise HTTPException(409,'Local conversation message limit reached.')
         mid=secrets.token_hex(16)
-        conn.execute('INSERT INTO messages VALUES(?,?,?,?,?,?,?)',(mid,company,cid,role,text,sequence,time.time()))
-        usage(conn,company,'scripted_message' if role=='bot' else role+'_message',mid)
+        conn.execute('INSERT INTO messages(id,company_id,conversation_id,role,text,sequence,created,citations,engine) VALUES(?,?,?,?,?,?,?,?,?)',(mid,company,cid,role,text,sequence,time.time(),json.dumps(citations or []),engine))
+        usage(conn,company,'local_ai_answer' if role=='bot' and engine.startswith('ollama:') else ('scripted_message' if role=='bot' else role+'_message'),mid)
+
+    def recover_stale_turn(conn,company,cid):
+        pending=conn.execute("SELECT request_id,created FROM ai_turns WHERE company_id=? AND conversation_id=? AND status='pending'",(company,cid)).fetchone()
+        if pending and pending['created'] < time.time()-150:
+            row=conn.execute(database.locked('SELECT status FROM conversations WHERE id=? AND company_id=?'),(cid,company)).fetchone()
+            if row and row['status']=='BOT_ACTIVE':
+                append_message(conn,company,cid,'bot',ai.UNAVAILABLE,engine='unavailable')
+                conn.execute('UPDATE conversations SET version=version+1,updated=? WHERE id=? AND company_id=?',(time.time(),cid,company))
+            conn.execute("UPDATE ai_turns SET status='failed' WHERE company_id=? AND conversation_id=? AND request_id=?",(company,cid,pending['request_id']))
 
     @app.post('/api/visitor/{bot_id}/conversations/{cid}/messages')
     def visitor_message(bot_id:str,cid:str,data:MessageInput,request:Request):
         visitor=identity(request,bot_id,cid); company=visitor['company_id']; throttle(('messages',visitor['hash']),30,60)
         if not data.text.strip(): raise HTTPException(422,'Message is empty.')
+        needs_ai=False; previous=''; question=data.text.strip()
         with database.connect(company=company,write=True) as conn:
             row=conn.execute(database.locked('SELECT * FROM conversations WHERE id=? AND company_id=?'),(cid,company)).fetchone()
+            recover_stale_turn(conn,company,cid)
             if conn.execute('SELECT 1 FROM message_requests WHERE conversation_id=? AND company_id=? AND request_id=?',(cid,company,data.request_id)).fetchone(): return conversation(conn,company,cid)
             if row['status']=='RESOLVED': raise HTTPException(409,'This conversation is resolved. Start a new conversation.')
-            append_message(conn,company,cid,'visitor',data.text.strip())
+            if row['status']=='BOT_ACTIVE' and conn.execute("SELECT 1 FROM ai_turns WHERE company_id=? AND conversation_id=? AND status='pending'",(company,cid)).fetchone():
+                raise HTTPException(409,'The assistant is still answering. Please wait a moment.')
+            prior=conn.execute("SELECT text FROM messages WHERE company_id=? AND conversation_id=? AND role='visitor' ORDER BY sequence DESC LIMIT 1",(company,cid)).fetchone()
+            previous=prior['text'] if prior else ''
+            append_message(conn,company,cid,'visitor',question)
             status=row['status']
             if status=='BOT_ACTIVE':
-                reply,handoff=scripted_reply(data.text)
-                append_message(conn,company,cid,'bot',reply)
-                if handoff: status='HUMAN_REQUESTED'
+                if re.search(r'\b(person|human|agent|handoff|representative)\b',question,re.I):
+                    append_message(conn,company,cid,'bot','I have saved your request for a person. The assistant is paused while your team takes over.')
+                    status='HUMAN_REQUESTED'
+                elif re.fullmatch(r'(hi|hello|hey|thanks|thank you)[! .]*',question,re.I):
+                    append_message(conn,company,cid,'bot','Hello! Ask me about this business, or choose “Talk to a person” if you need the team.')
+                else:
+                    conn.execute('INSERT INTO ai_turns VALUES(?,?,?,?,?)',(company,cid,data.request_id,'pending',time.time()))
+                    needs_ai=True
             conn.execute('UPDATE conversations SET status=?,version=version+1,updated=? WHERE id=? AND company_id=?',(status,time.time(),cid,company))
             conn.execute('INSERT INTO message_requests VALUES(?,?,?,?)',(company,cid,data.request_id,time.time()))
+            if not needs_ai: return conversation(conn,company,cid)
+        try:
+            evidence=knowledge.search(database,company,question,previous)
+            with database.connect(company=company) as conn:
+                business=conn.execute('SELECT name FROM companies WHERE id=?',(company,)).fetchone()['name']
+            result=ai.answer(question,evidence,business,previous)
+        except Exception:
+            result={'text':ai.UNAVAILABLE,'citations':[],'engine':'unavailable','latency':0}
+        with database.connect(company=company,write=True) as conn:
+            row=conn.execute(database.locked('SELECT status FROM conversations WHERE id=? AND company_id=?'),(cid,company)).fetchone()
+            turn=conn.execute("SELECT status FROM ai_turns WHERE company_id=? AND conversation_id=? AND request_id=?",(company,cid,data.request_id)).fetchone()
+            if turn and turn['status']=='pending':
+                if row and row['status']=='BOT_ACTIVE':
+                    append_message(conn,company,cid,'bot',result['text'],result['citations'],result['engine'])
+                    conn.execute('UPDATE conversations SET version=version+1,updated=? WHERE id=? AND company_id=?',(time.time(),cid,company))
+                conn.execute("UPDATE ai_turns SET status=? WHERE company_id=? AND conversation_id=? AND request_id=?",('failed' if result['engine']=='unavailable' else 'complete',company,cid,data.request_id))
             return conversation(conn,company,cid)
 
     @app.put('/api/company/conversations/{cid}/status')

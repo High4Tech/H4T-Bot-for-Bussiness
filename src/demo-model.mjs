@@ -5,8 +5,8 @@ export const companyDefaults = {
 export function demoReply(text) {
   if (/person|human|agent|handoff/i.test(text)) return {text:'Demo: your request is now in the local inbox. No real agent has been notified.',handoff:true};
   if (/^(hi|hello|hey|thanks|thank you)[! .]*$/i.test(text.trim())) return {text:'Hello! You’re trying a local interface demo. What would you like to explore?',handoff:false};
-  if (/demo|work/i.test(text)) return {text:'This is a scripted interface preview running on this PC. AI and knowledge retrieval are deferred. Try the appearance editor or request a person to preview the handoff flow.',handoff:false};
-  return {text:'The AI engine is not connected in this demo, so I can’t answer company questions yet. You can try another demo prompt or request a person.',handoff:false};
+  if (/demo|work/i.test(text)) return {text:'This sample chat uses scripted replies. Create a business and publish knowledge to try the local AI assistant, or request a person to preview handoff.',handoff:false};
+  return {text:'This sample has no published business knowledge, so I can’t verify that answer. Create a business to try knowledge-backed replies, or request a person.',handoff:false};
 }
 export function platformProjection(companies) {
   return companies.map(({id,name,plan,status,bots,answers,storage})=>({id,name,plan,status,bots,answers,storage}));

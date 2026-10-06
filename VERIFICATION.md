@@ -1,5 +1,13 @@
 # Local verification — 6 October 2026
 
+## Local AI engine pass — 6 October
+
+- Installed the local AI dependencies and saved `sentence-transformers/all-MiniLM-L6-v2` under ignored `.local/models/`; a local encode check returned one normalized 384-dimensional vector. Ollama `llama3.2:latest` was already installed on this PC and answered through its loopback API. No model was trained.
+- Added schema version 4 with tenant-scoped source chunks, processing state, citations and generation-turn receipts. The local ingestion worker is separate from the API; the running API health endpoint returned PostgreSQL schema 4, and `/api/engine/status` returned local RAG with embeddings and generation available.
+- A disposable two-company fixture used real embeddings to index one source for each business. Cross-company retrieval stayed isolated. A registered visitor asked Cedar Cycles for workshop hours; the local model replied “Monday to Friday, 9 AM to 5 PM” with a source citation. A question for a private CEO phone number returned `no_evidence`. First-source indexing took 14.13 seconds including model startup; the second took 0.09 seconds. The two visitor requests together took 52.53 seconds on this PC. These are observations from a small synthetic fixture, not throughput or quality guarantees.
+- The frontend production build and six Node tests passed. The final Python integration suite passed 31 cases across SQLite and PostgreSQL, including the worker-role grant, old-source migration, source-version cleanup and operator aggregate AI-answer count. One Starlette/TestClient deprecation warning remains.
+- pgvector is absent from the project-local Windows PostgreSQL runtime, so retrieval currently scores stored vectors in Python with a 5,000-chunk bound. Public website fetching, complex PDFs, multilingual answers, prompt-injection resistance, grounding quality at scale, production retention and browser rendering of the new UI have not been fully validated.
+
 ## GO dashboard and local settings pass — 6 October
 
 - Inspected GO light Home `3008:17100`, Chats `3008:17205`, chat detail `3008:17431`, Knowledge `3008:18714`, Settings `3008:18910`, Users `3008:18814`, Pricing `3008:19779`, and their child controls before coding. The resulting dashboard uses the High4Tech brand, a GO-style sidebar, cards, activity line, table and split chat layout. Calls and unsupported controls remain hidden. No pixel-exact visual match is claimed.
@@ -67,7 +75,7 @@ The current in-app browser did not apply the requested 390 × 844 viewport overr
 
 WordPress plugin execution, a Shopify store/theme, Meta’s live handshake, social outbound delivery, social OAuth/app review, email delivery and public hosting were not tested. The Meta tests use signed synthetic payloads, not live customer traffic. No provider credentials were installed and no tunnel or cloud service was provisioned.
 
-No AI model, embeddings, pgvector extension, ingestion, training, benchmarks, social outbound delivery, production host policy, real payments, retention jobs or exhaustive accessibility/device coverage are implemented or verified. Accounts, settings, files, source records, visitor sessions, chats, handoffs and Demo billing now persist in local PostgreSQL. Sample visitor and source records used for verification remain only in the ignored development database.
+At the time of the previous interface pass, no AI model, embeddings, pgvector extension, ingestion, training, benchmarks, social outbound delivery, production host policy, real payments, retention jobs or exhaustive accessibility/device coverage had been implemented or verified. The local AI engine changes and their checks are recorded above. Sample visitor and source records used for verification remain only in ignored development or disposable test databases.
 
 The attempted current browser inspection was rejected by the browser tool URL security policy before navigation. No workaround was attempted. The new database-connected screen behavior has build/API verification, but no fresh visual browser check is claimed.
 

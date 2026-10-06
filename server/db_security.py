@@ -5,8 +5,8 @@ from server.database import PRIVATE_TABLES
 def apply_security(connection):
     connection.execute('REVOKE ALL ON SCHEMA public FROM PUBLIC')
     connection.execute('REVOKE ALL ON ALL TABLES IN SCHEMA public FROM PUBLIC')
-    connection.execute('GRANT USAGE ON SCHEMA public TO h4t_auth,h4t_app,h4t_ingest,h4t_platform')
-    for role in ['h4t_auth','h4t_app','h4t_ingest','h4t_platform']:
+    connection.execute('GRANT USAGE ON SCHEMA public TO h4t_auth,h4t_app,h4t_ingest,h4t_platform,h4t_worker')
+    for role in ['h4t_auth','h4t_app','h4t_ingest','h4t_platform','h4t_worker']:
         connection.execute(sql.SQL('REVOKE ALL ON ALL TABLES IN SCHEMA public FROM {}').format(sql.Identifier(role)))
     connection.execute('GRANT SELECT,INSERT ON users TO h4t_auth')
     connection.execute('GRANT SELECT,INSERT,DELETE ON sessions TO h4t_auth')
@@ -20,6 +20,7 @@ def apply_security(connection):
     connection.execute('GRANT SELECT ON channels TO h4t_ingest')
     connection.execute('GRANT INSERT,SELECT(id) ON channel_events TO h4t_ingest')
     connection.execute('GRANT SELECT ON platform_company_metadata TO h4t_platform')
+    connection.execute('GRANT SELECT(id,company_id,source_id,version,status,created,updated) ON ingestion_jobs TO h4t_worker')
     for table in ['companies','channels'] + PRIVATE_TABLES:
         ident=sql.Identifier(table)
         column=sql.Identifier('id' if table=='companies' else 'company_id')
@@ -42,3 +43,5 @@ def apply_security(connection):
     connection.execute('CREATE POLICY webhook_insert ON channel_events FOR INSERT TO h4t_ingest WITH CHECK (true)')
     connection.execute('DROP POLICY IF EXISTS webhook_dedupe ON channel_events')
     connection.execute('CREATE POLICY webhook_dedupe ON channel_events FOR SELECT TO h4t_ingest USING (true)')
+    connection.execute('DROP POLICY IF EXISTS worker_queue ON ingestion_jobs')
+    connection.execute('CREATE POLICY worker_queue ON ingestion_jobs FOR SELECT TO h4t_worker USING (true)')

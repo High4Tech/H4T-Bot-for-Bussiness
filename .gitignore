@@ -2,6 +2,7 @@ node_modules/
 dist/
 .npm-cache/
 test-results/
+test-results-*/
 *.tsbuildinfo
 .venv/
 .local/

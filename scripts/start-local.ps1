@@ -16,6 +16,10 @@ try {
             Start-Process -FilePath $nodeExe -ArgumentList 'node_modules/vite/bin/vite.js --host 127.0.0.1' -WorkingDirectory $appRoot -WindowStyle Hidden -RedirectStandardOutput (Join-Path $appRoot '.local/vite.log') -RedirectStandardError (Join-Path $appRoot '.local/vite-error.log') | Out-Null
         }
     }
+    if (Test-Path (Join-Path $appRoot '.local/models/all-MiniLM-L6-v2/modules.json')) {
+        # A project-local file lock in the worker prevents duplicate processing.
+        Start-Process -FilePath $pythonExe -ArgumentList '-m server.worker' -WorkingDirectory $appRoot -WindowStyle Hidden -RedirectStandardOutput (Join-Path $appRoot '.local/worker.log') -RedirectStandardError (Join-Path $appRoot '.local/worker-error.log') | Out-Null
+    }
     $healthy = $false
     foreach ($attempt in 1..10) {
         try {

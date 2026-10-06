@@ -1,6 +1,6 @@
 # H4T Bot for Business
 
-A standalone, local-first product by High4Tech. React / TypeScript / Vite interface with a loopback FastAPI product service. This stage implements the website, visitor widget, single-assistant customer workspace, local authentication and channel setup. AI generation and ingestion remain deferred at the user’s explicit request.
+A standalone, local-first product by High4Tech. React / TypeScript / Vite interface with a loopback FastAPI product service, tenant-scoped knowledge ingestion, local embeddings and Ollama-backed visitor answers.
 
 The agency repository is separate. This repository contains no agency auth assumptions, private transcripts, supplied font binaries, credentials or local database. Synced ChatGPT project references remain read-only outside the app.
 
@@ -12,6 +12,7 @@ Prerequisites: Node.js 20+ and Python 3.12+. From the repository directory:
 npm.cmd ci
 python -m venv .venv
 .venv/Scripts/python.exe -m pip install -r server/requirements-lock.txt
+.venv/Scripts/python.exe -m pip install -r server/requirements-ai.txt
 ```
 
 Create the project-local PostgreSQL database first (Windows, official EnterpriseDB binaries):
@@ -19,7 +20,10 @@ Create the project-local PostgreSQL database first (Windows, official Enterprise
 ```powershell
 .venv/Scripts/python.exe scripts/download-postgres.py
 .venv/Scripts/python.exe scripts/setup-database.py
+.venv/Scripts/python.exe scripts/download-embedding.py
 ```
+
+Install [Ollama](https://ollama.com/download) locally and pull the configured generation model (`ollama pull llama3.2`). The model must be running or available through Ollama's loopback API. Start the ingestion worker with `./scripts/start-local.ps1`, or separately with `.venv/Scripts/python.exe -m server.worker`. Model binaries, uploads and database files remain ignored under `.local/`. The embedding download is a one-time setup step; normal inference uses only the local saved model.
 
 Then start the local services with `./scripts/start-local.ps1`, or use two terminals with this directory as their working folder:
 
@@ -45,17 +49,17 @@ The script extracts only six known font filenames, never ZIP paths or executable
 
 ## Surfaces
 
-The customer dashboard adapts the inspected GO light-screen layout with a 280px sidebar, three summary cards, a period-filtered activity graph, searchable conversation table, pagination and a three-column chat detail. Its totals and chart are queried from the local database rather than the 50-row workspace snapshot. The widget still uses customer-specific branding and scripted local replies. Shared controls follow the inspected Untitled library geometry.
+The customer dashboard adapts the inspected GO light-screen layout with a 280px sidebar, three summary cards, a period-filtered activity graph, searchable conversation table, pagination and a three-column chat detail. Its totals and chart are queried from the local database rather than the 50-row workspace snapshot. The registered widget uses customer-specific branding and published business knowledge. Shared controls follow the inspected Untitled library geometry.
 
 - `/`: product website with original High4Tech branding and supplied fonts.
 - `/signup`, `/login`: local account registration and sign-in.
 - `/dashboard`: protected owner workspace with one business assistant. Dashboard, Chat record, Knowledge, Integrations, Users, Settings, Appearance and Demo Pricing. Legacy `#/bots` and `#/install` links open Assistant and Integrations.
-- `/widget?company=<public-assistant-id>`: public branding from the local API, then a scripted chat preview. No owner account is required to view the widget.
+- `/widget?company=<public-assistant-id>`: public branding and locally generated, cited answers from that business's ready sources. No owner account is required to view the widget.
 - `/demo-host.html?company=<public-assistant-id>`: loopback sample website with the isolated iframe widget.
 - `/widget?company=high4tech` and `company=cedar`: synthetic reference themes, independent of real account data.
 - `/platform`: protected, metadata-only operator view. Customer accounts are denied. The operator has no customer membership.
 
-Registration creates exactly one assistant per business. There is no create-bot flow or list of assistants. Branding settings save through the authenticated API and are shared by that assistant’s website installations. Website source records, privately stored files, version history, visitor sessions, conversations, handoffs and Demo billing now persist. Source publication and assistant replies are still marked Demo; extraction, retrieval and AI remain deferred.
+Registration creates exactly one assistant per business. There is no create-bot flow or list of assistants. Branding settings save through the authenticated API and are shared by that assistant’s website installations. Website source records, privately stored files, version history, visitor sessions, conversations, handoffs and Demo billing persist. Publishing a source queues bounded text extraction and indexing. Only ready, currently published source versions can support an answer. Source publication still has the legacy database label “Demo published”; billing alone is simulated.
 
 ## Local authentication and privacy
 
@@ -71,7 +75,7 @@ The operator endpoint returns only an explicit metadata allowlist. No conversati
 
 The command prompts for a password without echoing it. Ordinary sign-up cannot request the operator role. No shared default operator password is provided.
 
-Registered visitor chats use hashed, expiring bearer tokens and are saved in PostgreSQL. A visitor can read only their own conversation. The owner Chat record and widget poll the local API; takeover pauses scripted replies and team messages are delivered across tabs. Owner actions include viewing, exporting and deleting a conversation with version checks. Settings and team entries are saved drafts: they do not change scripted replies, create accounts or send invitations. Synthetic reference fixtures still use BroadcastChannel and never include registered workspace data. Use sample visitor details during development.
+Registered visitor chats use hashed, expiring bearer tokens and are saved in PostgreSQL. A visitor can read only their own conversation. The owner Chat record and widget poll the local API; takeover pauses assistant replies and team messages are delivered across tabs. Owner actions include viewing, exporting and deleting a conversation with version checks. Settings and team entries are saved drafts: they do not yet affect AI behavior, create accounts or send invitations. Synthetic reference fixtures still use BroadcastChannel and never include registered workspace data. Use sample visitor details during development.
 
 ## Channels: implemented scope
 
@@ -91,9 +95,9 @@ The widget loader accepts loopback websites only, validates frame messages again
 
 ## Engine direction
 
-The original AI-ENGINE-DECISION.md and NEXT-CHAT-CONTEXT.md supersede the older runtime recommendation. Their architecture remains: FastAPI services, bounded ingestion worker, Sentence Transformers embeddings, PostgreSQL/pgvector hybrid retrieval and replaceable Ollama inference. The product now runs on local PostgreSQL. SQLite remains only a test/development fallback. The vector extension and retrieval tables are deferred to the AI stage. No model was downloaded, trained, benchmarked or served. RAG indexing must not be called weight training; company-specific fine-tuning is a later evaluated decision.
+The engine runs a bounded local worker over TXT, PDF, DOCX, CSV and public website text. It splits each source into chunks, embeds them with `sentence-transformers/all-MiniLM-L6-v2` (384 dimensions), and stores the vectors with tenant and source-version keys in PostgreSQL. Retrieval combines semantic similarity, token overlap and bounded typo matching. Ollama's loopback API generates an answer from retrieved passages and returns source citations. Missing or conflicting facts trigger clarification; a visitor can request human handoff. Knowledge text is treated as evidence, never instructions. A failed worker job is visible in Knowledge and can be retried.
 
-Answers must eventually be grounded in each business’s published sources, with clarification or handoff for missing/conflicting facts. Knowledge uploads are evidence, never instructions. The current replies explicitly state that generation and retrieval are deferred.
+The project-local Windows PostgreSQL installation currently lacks pgvector. The local prototype uses PostgreSQL storage and bounded application-side vector and lexical scoring; a full-text index is present for later database-side retrieval. pgvector-backed nearest-neighbor search remains a scaling step. The current Llama 3.2 model is a prototype choice whose [license](https://ollama.com/library/llama3.2) needs review before commercial launch. This is RAG indexing, not weight training; company-specific fine-tuning remains a separate, evaluated future decision. No claim of perfect grounding or multilingual quality is made.
 
 ## Figma provenance
 
