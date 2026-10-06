@@ -45,6 +45,8 @@ The script extracts only six known font filenames, never ZIP paths or executable
 
 ## Surfaces
 
+The assistant workspace uses the supplied High4Tech mascot and local typography, a branded welcome preview, saved-storage status, and direct links to appearance, knowledge and channels. Shared controls follow the inspected Untitled library geometry; the widget uses the GO reference hierarchy with customer-specific button colors. The overview chart shows saved conversation starts over seven days, limited to the 50 most recent conversations returned by the workspace API.
+
 - `/`: product website with original High4Tech branding and supplied fonts.
 - `/signup`, `/login`: local account registration and sign-in.
 - `/dashboard`: protected owner workspace with one business assistant. Overview, Assistant, Inbox, Knowledge, Appearance, Channels and Demo billing. Legacy `#/bots` and `#/install` links open Assistant and Channels.

@@ -2,10 +2,10 @@ import {useSyncExternalStore} from 'react';
 import {companyDefaults, allowedTransition, mergeDemoConversations, type BotConfig} from './demo-model.mjs';
 import {api} from './api';
 export type Message = {id:string;role:'visitor'|'bot'|'agent';text:string};
-export type Conversation = {id:string;company:string;name:string;email:string;status:string;version?:number;messages:Message[]};
+export type Conversation = {id:string;company:string;name:string;email:string;status:string;version?:number;created?:number;messages:Message[]};
 export type Source = {id:string;name:string;kind:'Website'|'File';status:'Demo published'|'Draft';version:number};
 export type BillingData={plan:string;demo:boolean;invoices:{id:string;plan:string;cents:number;status:string;created:number}[]};
-export type Company = {config:BotConfig;sources:Source[];conversations:Conversation[];billing?:BillingData};
+export type Company = {config:BotConfig;sources:Source[];conversations:Conversation[];billing?:BillingData;database?:{engine:string;status:string;schemaVersion:number}};
 const configKey = 'h4t.demo.appearance.v1';
 function savedConfigs(): Record<string,BotConfig> {
   try {
@@ -63,7 +63,7 @@ export async function saveConfig(id:string,config:BotConfig) {const saved=id in 
 function putConversation(company:string,conversation:Conversation){mutate(company,c=>({...c,conversations:[{...conversation,company},...c.conversations.filter(x=>x.id!==conversation.id)]}));}
 export async function refreshWorkspace(company:string){
  const workspace=await api<Company & {appearance:BotConfig}>('/company/workspace');
- state={...state,[company]:{config:workspace.appearance,sources:workspace.sources,conversations:workspace.conversations.map(c=>({...c,company})),billing:workspace.billing}};emit();
+ state={...state,[company]:{config:workspace.appearance,sources:workspace.sources,conversations:workspace.conversations.map(c=>({...c,company})),billing:workspace.billing,database:workspace.database}};emit();
 }
 export async function refreshVisitor(company:string,id:string){
  const session=visitorToken(company);if(!session||session.id!==id)throw new Error('Visitor session expired. Start a new conversation.');

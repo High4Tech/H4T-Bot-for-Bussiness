@@ -1,4 +1,17 @@
-# Local verification — 5 October 2026
+# Local verification — 6 October 2026
+
+## Visual refinement and service checks — 6 October
+
+- Inspected exact Figma contexts and screenshots before implementation: Untitled `NU1SlgUvw6zmalvW1Qhj6K` button `3287:427323`; GO `dxZUj3AlKSm8II2xgIvFwY` sidebar `3040:36753` and widget Home `2923:8335`. Reused the original High4Tech assets, supplied local typography and bundled Phosphor icons. No exact frame match is claimed.
+- Added the branded single-assistant welcome page and setup links; refined shared controls, spacing, dark-mode tokens, widget and empty states. Widget primary actions now follow the business accent color, and business logos use contain sizing. Added responsive layout rules, an Escape dismissal and a mobile navigation scrim; their fresh visual behavior has not been browser-verified.
+- Replaced the fixed sample activity chart with local-day counts from saved timestamps in the 50 most recent conversations. The scope is stated in the interface.
+- TypeScript and the Vite production build passed (90 modules). All six Node tests and all 22 Python tests passed. The Python suite exercised SQLite and actual PostgreSQL and emitted one existing Starlette HTTPX TestClient deprecation warning. Initial test setup attempts failed on temporary-directory permissions; the successful suite used a fresh project-local temporary directory with pytest cache disabled.
+- Restarted the project-local services using the documented startup helper. The running Vite proxy returned healthy PostgreSQL, schema version 2, and `ai: deferred`. The existing synthetic owner could sign in; saved sources, conversations and Demo invoices were present after restart. Saved conversation timestamps were returned for the chart. Unauthenticated workspace access returned 401 and customer access to the operator endpoint returned 403.
+- The original branding assets and all six supplied local font endpoints returned valid files; font payloads had OpenType headers.
+- Created a fresh private database/upload backup and verified its hashes and isolated restore: one company and one source file passed verification. The running database was unchanged.
+- Fresh browser inspection was rejected by the browser tool URL policy before navigation. No alternate browser or automation workaround was used. Desktop/mobile rendering, interactions, dark mode and visual alignment for this refinement therefore remain unverified in a browser; the older screenshots below are not evidence for this revision.
+
+## Previous verification — 5 October 2026
 
 Executed on the user’s Windows PC, in the standalone H4T Bot workspace. This covers the premium interface baseline and the subsequent PostgreSQL persistence revision; it does not claim a deployed product or active AI engine.
 
