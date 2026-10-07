@@ -1,8 +1,75 @@
 import {useEffect} from 'react';
 import Lenis from 'lenis';
 import 'lenis/dist/lenis.css';
+import Widget from './Widget';
 import {Brand,Icon,Mascot} from './ui';
+
 export default function Landing(){
- useEffect(()=>{const reduced=matchMedia('(prefers-reduced-motion: reduce)');if(reduced.matches)return;const lenis=new Lenis({autoRaf:true,anchors:true,duration:1.05});const stop=()=>{if(reduced.matches)lenis.destroy();};reduced.addEventListener('change',stop);return()=>{lenis.destroy();reduced.removeEventListener('change',stop);};},[]);
- return <div className="premium-landing"><header className="site-header"><Brand/><nav><a href="#experience">The experience</a><a href="#connections">Connections</a><a href="/login">Sign in</a><a className="button primary" href="/signup">Get started<Icon name="arrow"/></a></nav></header><main><section className="premium-hero"><div className="hero-copy"><div className="product-tag"><span className="local-dot"/> H4T BOT · LOCAL PRODUCT PREVIEW</div><h1>Your business.<br/>A better <span>hello.</span><svg className="hello-underline" viewBox="0 0 270 20" aria-hidden="true"><path d="M4 15Q130 -5 266 12"/></svg></h1><p>One assistant that feels like you.<br/>Give every customer a warmer welcome,<br/>wherever the conversation begins.</p><div className="action-row"><a className="button primary" href="/signup">Create your workspace<Icon name="arrow"/></a><a className="button secondary" href="/demo-host.html">Try the widget<Icon name="inbox"/></a></div><div className="hero-proof"><span className="mini-mascot"><Mascot/></span><div><strong>Your brand. Your knowledge. Your assistant.</strong><small>Built by High4Tech · Running on your PC</small></div></div></div><div className="hero-composition"><div className="composition-grid"/><span className="composition-word">hello<span>!</span></span><div className="hello-card"><span className="hello-avatar"><Mascot/></span><div><small>HIGH4TECH ASSISTANT</small><strong>A little help,<br/>right when you need it.</strong></div><span className="card-orbit"><Icon name="sparkle"/></span></div><div className="conversation-card"><div><span className="local-dot"/> HERE TO HELP <small>Widget preview</small></div><p>Hey! Tell us what you’re looking for.<span>👋</span></p><button onClick={()=>location.assign('/demo-host.html')}>Let’s start a conversation<Icon name="arrow"/></button></div><div className="floating-channel whatsapp"><Icon name="whatsapp"/></div><div className="floating-channel facebook"><Icon name="facebook"/></div><div className="floating-channel web"><Icon name="website"/></div><span className="composition-caption">GOOD CONVERSATIONS START WITH A GOOD HELLO.</span></div></section><section id="connections" className="channel-strip"><span>ONE ASSISTANT.<br/><strong>MORE WAYS TO CONNECT.</strong></span><div>{[['web','Website'],['whatsapp','WhatsApp'],['facebook','Messenger'],['wordpress','WordPress'],['shopify','Shopify']].map(([id,label])=><span key={id}><Icon name={id}/>{label}</span>)}</div><small>Local website embed · Social setup preview</small></section><section id="experience" className="experience-section"><div className="experience-heading"><span className="eyebrow">THOUGHTFULLY CONNECTED</span><h2>A familiar voice.<br/>Everywhere you show up.</h2><p>Your customers don’t think in channels.<br/>Your assistant shouldn’t feel different in each one.</p></div><div className="experience-cards">{[['01','appearance','Make it feel like you.','Your logo, your colors, your welcome. An assistant that belongs to your business.'],['02','knowledge','Give it your knowledge.','Review website and upload sources in one place. Grounded AI answers come in the engine stage.'],['03','inbox','Keep a human close.','Explore the handoff, team inbox and replies in the local conversation preview.']].map(([number,icon,title,copy])=><article key={number}><div><Icon name={icon}/><span>{number}</span></div><h3>{title}</h3><p>{copy}</p></article>)}</div></section><section className="site-cta"><div><span className="eyebrow">A SMALL START. A BETTER EXPERIENCE.</span><h2>Your next great<br/>conversation starts here.</h2><p>Explore the product, shape your assistant, and try it locally.</p><a className="button primary" href="/signup">Make yourself at home<Icon name="arrow"/></a></div><Mascot/></section></main><footer className="site-footer"><Brand/><span>Local-first. Built with care by High4Tech.</span><a href="/login">Open workspace<Icon name="arrow"/></a></footer></div>;
+  useEffect(()=>{
+    const reduced=matchMedia('(prefers-reduced-motion: reduce)');
+    if(reduced.matches)return;
+    const lenis=new Lenis({autoRaf:true,anchors:true,duration:1.05});
+    const stop=()=>{if(reduced.matches)lenis.destroy();};
+    reduced.addEventListener('change',stop);
+    return()=>{lenis.destroy();reduced.removeEventListener('change',stop);};
+  },[]);
+
+  return <div className="h4t-landing">
+    <header className="h4t-site-header">
+      <Brand/>
+      <nav aria-label="Main navigation">
+        <a href="#how-it-works">How it works</a>
+        <a href="#preview">Try the assistant</a>
+        <a href="/login">Sign in</a>
+        <a className="button primary" href="/signup">Create workspace <Icon name="arrow"/></a>
+      </nav>
+    </header>
+    <main>
+      <section className="h4t-hero" aria-labelledby="h4t-hero-title">
+        <div className="h4t-hero-copy">
+          <p className="h4t-product-line"><span className="h4t-product-mark"/> H4T Bot by High4Tech</p>
+          <h1 id="h4t-hero-title">Your business knows the answer. Now your assistant can, too.</h1>
+          <p className="h4t-hero-description">Give visitors one branded place to ask. Publish your website or documents, and your assistant can answer from that knowledge with sources. When a person is needed, your team can take over.</p>
+          <div className="h4t-hero-actions">
+            <a className="button primary" href="/signup">Create your workspace <Icon name="arrow"/></a>
+            <a className="h4t-text-link" href="#preview">Try the sample assistant <Icon name="arrow"/></a>
+          </div>
+          <div className="h4t-hero-proof" aria-label="Product capabilities">
+            <span><Icon name="knowledge"/> Published knowledge</span>
+            <span><Icon name="shield"/> Source-backed replies</span>
+            <span><Icon name="user"/> Human handoff</span>
+          </div>
+        </div>
+        <div className="h4t-preview-stage" id="preview">
+          <div className="h4t-stage-heading"><span>Meet your website assistant</span><span>Interactive sample</span></div>
+          <div className="h4t-stage-monogram" aria-hidden="true">H4T</div>
+          <div className="h4t-stage-widget"><Widget company="high4tech"/></div>
+          <p className="h4t-stage-note">This sample uses scripted replies. Your workspace uses local AI after you publish knowledge.</p>
+        </div>
+      </section>
+
+      <section className="h4t-process" id="how-it-works" aria-labelledby="h4t-process-title">
+        <div className="h4t-section-intro">
+          <p>From what you know to what customers need</p>
+          <h2 id="h4t-process-title">One assistant, grounded in your business.</h2>
+        </div>
+        <div className="h4t-process-grid">
+          <article><span className="h4t-step">01</span><Icon name="knowledge"/><h3>Add your knowledge</h3><p>Bring in your website and files. Keep drafts separate until you are ready to use them.</p></article>
+          <article><span className="h4t-step">02</span><Icon name="sparkle"/><h3>Publish and index</h3><p>Make approved sources available to the assistant. See when each source is Ready.</p></article>
+          <article><span className="h4t-step">03</span><Icon name="inbox"/><h3>Answer or hand off</h3><p>Visitors get grounded replies with citations. Your team can step in when the answer needs a person.</p></article>
+        </div>
+      </section>
+
+      <section className="h4t-platform-note" aria-labelledby="h4t-platform-title">
+        <div><span className="h4t-platform-icon"><Icon name="website"/></span><div><h2 id="h4t-platform-title">Start on your website.</h2><p>Install one branded widget on a local test page. WhatsApp, Messenger and store-specific connectors are planned for later stages.</p></div></div>
+        <a href="/demo-host.html">Open the website demo <Icon name="arrow"/></a>
+      </section>
+
+      <section className="h4t-final-cta">
+        <div><p>Built for the conversation after hello</p><h2>Let your business speak for itself.</h2><span>Create your workspace, publish a source, and try the assistant locally.</span><a className="button primary" href="/signup">Get started <Icon name="arrow"/></a></div>
+        <Mascot/>
+      </section>
+    </main>
+    <footer className="h4t-site-footer"><Brand/><span>H4T Bot is a local product preview by High4Tech.</span><a href="/login">Open workspace <Icon name="arrow"/></a></footer>
+  </div>;
 }

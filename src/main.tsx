@@ -7,6 +7,7 @@ import './styles.css';
 import './premium.css';
 import './refinement.css';
 import './go.css';
+import './design-pass.css';
 const Dashboard=lazy(()=>import('./Dashboard'));
 const Platform=lazy(()=>import('./Platform'));
 const Widget=lazy(()=>import('./Widget'));
