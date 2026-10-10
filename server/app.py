@@ -18,7 +18,7 @@ from starlette.middleware.trustedhost import TrustedHostMiddleware
 
 CHANNELS = ("web", "whatsapp", "facebook", "wordpress", "shopify")
 COOKIE = "h4t_session"
-ORIGINS = {"http://127.0.0.1:5173", "http://localhost:5173"}
+ORIGINS = {f"http://{host}:{port}" for host in ("127.0.0.1", "localhost") for port in (5173, 5174)}
 
 class Credentials(BaseModel):
     email: str = Field(min_length=5, max_length=254)

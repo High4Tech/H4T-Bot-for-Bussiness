@@ -37,6 +37,8 @@ npm.cmd run dev
 
 Open http://127.0.0.1:5173/. The frontend proxies `/api` to the local service. Both bind to loopback. App records persist in project-local PostgreSQL on `127.0.0.1:55432`, database `h4t_bot`. Uploads, credentials, backups and runtime files stay in ignored `.local/`. The original SQLite database is preserved as a migration backup. See [DATABASE.md](DATABASE.md) for schema, permissions and backup commands. No hosted database, auth provider, AI API or cloud provisioning is needed. For a build preview, run `npm.cmd run build` followed by `npm.cmd run preview` while the API remains running.
 
+If another local app already uses port 5173, start only this frontend with `npm.cmd run dev -- --port 5174 --strictPort` and open http://127.0.0.1:5174/. The API accepts either exact loopback preview origin; it does not accept arbitrary origins.
+
 ## Typography and motion
 
 PP Neue Montreal is used for headings and the product website; Helvetica Neue for workspace and widget text. Supplied font binaries are installed locally and excluded from Git because the ZIPs contain no redistribution license. A fresh checkout uses Helvetica / Arial fallbacks. Import your licensed archives:
