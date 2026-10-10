@@ -97,3 +97,9 @@ At the time of the previous interface pass, no AI model, embeddings, pgvector ex
 The attempted current browser inspection was rejected by the browser tool URL security policy before navigation. No workaround was attempted. The new database-connected screen behavior has build/API verification, but no fresh visual browser check is claimed.
 
 The platform UI imports no customer store. The operator SQL-role and tenant row-security restrictions are tested locally. Production security and deployment review remain separate work. No pixel-exact match to every Figma frame is claimed.
+# shadcn/ui visual system — 10 October 2026
+
+- Installed the official shadcn/ui Nova preset for the existing Vite app, plus local Card, Button, Input, Badge, Table, Tabs, Alert Dialog and Chart components. Replaced legacy visual stylesheets, Phosphor icons and Lenis with one shadcn-token-based theme, bundled Geist/Lucide, and the original High4Tech assets. The dashboard chart now uses shadcn's ChartContainer and Recharts.
+- Updated the High4Tech preview assistant accent from its former saved purple value to `#F97328` through the local Appearance screen; the save confirmation appeared. Customer widgets remain rebrandable through their own appearance settings.
+- Built the production frontend successfully; all six Node product tests passed. The scoped API suite passed 12 tests against its local SQLite/PostgreSQL fixtures after routing pytest's temporary files into `.local`; an initial sandbox run failed only because pytest could not create its default temporary directory.
+- Inspected the running local dashboard, Knowledge, product website and widget in the in-app browser. The activity period Tabs switched from 12 months to 7 days, and light/dark Appearance rendering was visually checked. The preview remains local on `127.0.0.1:5174`.

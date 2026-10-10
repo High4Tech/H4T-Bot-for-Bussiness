@@ -1,41 +1,21 @@
-import type { ButtonHTMLAttributes, InputHTMLAttributes, ReactNode } from 'react';
-import {ChartBarIcon} from '@phosphor-icons/react/dist/csr/ChartBar';
-import {ChatCircleDotsIcon} from '@phosphor-icons/react/dist/csr/ChatCircleDots';
-import {BooksIcon} from '@phosphor-icons/react/dist/csr/Books';
-import {PaletteIcon} from '@phosphor-icons/react/dist/csr/Palette';
-import {PlugIcon} from '@phosphor-icons/react/dist/csr/Plug';
-import {RobotIcon} from '@phosphor-icons/react/dist/csr/Robot';
-import {GlobeIcon} from '@phosphor-icons/react/dist/csr/Globe';
-import {UserIcon} from '@phosphor-icons/react/dist/csr/User';
-import {XIcon} from '@phosphor-icons/react/dist/csr/X';
-import {PaperPlaneTiltIcon} from '@phosphor-icons/react/dist/csr/PaperPlaneTilt';
-import {LockKeyIcon} from '@phosphor-icons/react/dist/csr/LockKey';
-import {ShieldCheckIcon} from '@phosphor-icons/react/dist/csr/ShieldCheck';
-import {SparkleIcon} from '@phosphor-icons/react/dist/csr/Sparkle';
-import {ArrowUpRightIcon} from '@phosphor-icons/react/dist/csr/ArrowUpRight';
-import {WhatsappLogoIcon} from '@phosphor-icons/react/dist/csr/WhatsappLogo';
-import {FacebookLogoIcon} from '@phosphor-icons/react/dist/csr/FacebookLogo';
-import {ShoppingBagIcon} from '@phosphor-icons/react/dist/csr/ShoppingBag';
-import {CodeIcon} from '@phosphor-icons/react/dist/csr/Code';
-import {ListIcon} from '@phosphor-icons/react/dist/csr/List';
-import {MoonIcon} from '@phosphor-icons/react/dist/csr/Moon';
-import {SunIcon} from '@phosphor-icons/react/dist/csr/Sun';
-import {SignOutIcon} from '@phosphor-icons/react/dist/csr/SignOut';
-import {MagnifyingGlassIcon} from '@phosphor-icons/react/dist/csr/MagnifyingGlass';
-import {FunnelIcon} from '@phosphor-icons/react/dist/csr/Funnel';
-import {EyeIcon} from '@phosphor-icons/react/dist/csr/Eye';
-import {DownloadSimpleIcon} from '@phosphor-icons/react/dist/csr/DownloadSimple';
-import {TrashIcon} from '@phosphor-icons/react/dist/csr/Trash';
-import {GearSixIcon} from '@phosphor-icons/react/dist/csr/GearSix';
-import {UsersIcon} from '@phosphor-icons/react/dist/csr/Users';
-const icons:Record<string,typeof ChartBarIcon>={overview:ChartBarIcon,billing:ChartBarIcon,inbox:ChatCircleDotsIcon,knowledge:BooksIcon,appearance:PaletteIcon,install:PlugIcon,channels:PlugIcon,bots:RobotIcon,assistant:RobotIcon,website:GlobeIcon,web:GlobeIcon,user:UserIcon,close:XIcon,send:PaperPlaneTiltIcon,lock:LockKeyIcon,shield:ShieldCheckIcon,sparkle:SparkleIcon,arrow:ArrowUpRightIcon,whatsapp:WhatsappLogoIcon,facebook:FacebookLogoIcon,shopify:ShoppingBagIcon,wordpress:CodeIcon,menu:ListIcon,moon:MoonIcon,sun:SunIcon,logout:SignOutIcon,search:MagnifyingGlassIcon,filter:FunnelIcon,eye:EyeIcon,download:DownloadSimpleIcon,trash:TrashIcon,settings:GearSixIcon,team:UsersIcon};
-export function Icon({name}: {name: string}) {const Component=icons[name]??RobotIcon;return <Component className="icon" size={20} weight="regular" aria-hidden="true"/>;}
-export function Button({ children, variant='secondary', className='', ...props }: ButtonHTMLAttributes<HTMLButtonElement> & {variant?: 'primary'|'secondary'|'ghost'; children: ReactNode}) {
-  return <button className={'button '+variant+' '+className} {...props}>{children}</button>;
+import type {ButtonHTMLAttributes, InputHTMLAttributes, ReactNode} from 'react';
+import {Activity, ArrowUpRight, BookOpen, Bot, ChartNoAxesCombined, Code2, Download, Eye, Filter, Globe2, LockKeyhole, LogOut, Menu, MessageCircle, Moon, Palette, PlugZap, Search, Send, Settings, ShieldCheck, ShoppingBag, Sparkles, Sun, Trash2, UserRound, UsersRound, X} from 'lucide-react';
+import {Button as ShadButton} from '@/components/ui/button';
+import {Badge as ShadBadge} from '@/components/ui/badge';
+import {Input} from '@/components/ui/input';
+import {Label} from '@/components/ui/label';
+import {cn} from '@/lib/utils';
+
+const icons:Record<string,typeof Bot>={overview:ChartNoAxesCombined,billing:Activity,inbox:MessageCircle,knowledge:BookOpen,appearance:Palette,install:PlugZap,channels:PlugZap,bots:Bot,assistant:Bot,website:Globe2,web:Globe2,user:UserRound,close:X,send:Send,lock:LockKeyhole,shield:ShieldCheck,sparkle:Sparkles,arrow:ArrowUpRight,whatsapp:MessageCircle,facebook:MessageCircle,shopify:ShoppingBag,wordpress:Code2,menu:Menu,moon:Moon,sun:Sun,logout:LogOut,search:Search,filter:Filter,eye:Eye,download:Download,trash:Trash2,settings:Settings,team:UsersRound};
+export function Icon({name}:{name:string}){const Component=icons[name]??Bot;return <Component className="icon size-4 shrink-0" aria-hidden="true"/>;}
+export function Button({children,variant='secondary',className='',...props}:ButtonHTMLAttributes<HTMLButtonElement>&{variant?:'primary'|'secondary'|'ghost';children:ReactNode}){
+  return <ShadButton variant={variant==='primary'?'default':variant==='ghost'?'ghost':'outline'} className={cn('button',variant,className)} {...props}>{children}</ShadButton>;
 }
-export function Field({label, hint, ...props}: InputHTMLAttributes<HTMLInputElement> & {label: string; hint?: string}) {
-  return <label className="field"><span>{label}{props.required && <span className="required"> *</span>}</span><input {...props}/>{hint && <small>{hint}</small>}</label>;
+export function Field({label,hint,...props}:InputHTMLAttributes<HTMLInputElement>&{label:string;hint?:string}){
+  return <Label className="field"><span>{label}{props.required&&<span className="required"> *</span>}</span><Input {...props}/>{hint&&<small>{hint}</small>}</Label>;
 }
-export function Badge({children, tone='neutral'}:{children: ReactNode; tone?: string}) { return <span className={'badge '+tone}>{children}</span>; }
-export function Brand() { return <a className="brand" href="/"><img src="/assets/brand/favicon.png" alt=""/><span>H4T<span className="brand-light"> Bot</span><small>by High4Tech</small></span></a>; }
-export function Mascot({src='/assets/brand/mascots.svg'}:{src?: string}) { return <img className="mascot" src={src} alt="Company assistant"/>; }
+export function Badge({children,tone='neutral'}:{children:ReactNode;tone?:string}){
+  return <ShadBadge variant={tone==='warning'?'outline':'secondary'} className={cn('badge',tone)}>{children}</ShadBadge>;
+}
+export function Brand(){return <a className="brand" href="/"><img src="/assets/brand/favicon.png" alt=""/><span>H4T<span className="brand-light"> Bot</span><small>by High4Tech</small></span></a>;}
+export function Mascot({src='/assets/brand/mascots.svg'}:{src?:string}){return <img className="mascot" src={src} alt="Company assistant"/>;}

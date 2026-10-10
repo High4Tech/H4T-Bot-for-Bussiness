@@ -2,6 +2,7 @@
 
 - This is a standalone High4Tech product. Do not push to or copy the agency repository.
 - One assistant per company, shared branding and future knowledge across channels. Do not add a bot marketplace/list or create-bot flow.
+- Current visual system is shadcn/ui with bundled Geist and Lucide, plus the original High4Tech orange `#F97328`, white, black, logo and mascot. Do not use historical Figma layouts or earlier visual skills as the implementation reference. Use components and charts available in the installed library.
 - Keep runtime services on loopback. No cloud provisioning unless explicitly requested.
 - Local auth, settings, visitor sessions, messages, handoffs, source records/files/versions and Demo plans/invoices persist in PostgreSQL. The activity chart uses saved timestamps from the 50 most recent conversations; it is not a complete analytics report. AI replies, knowledge publication and billing charges remain previews. Preserve their notices; never claim an AI engine, model training or live provider connection without evidence.
 - Owner APIs must derive company membership from the session. The operator may receive only allowlisted account and aggregate metadata, never conversations, profiles, uploads, webhook payloads or impersonation access.

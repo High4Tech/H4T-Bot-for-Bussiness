@@ -53,7 +53,7 @@ The script extracts only six known font filenames, never ZIP paths or executable
 
 The customer dashboard adapts the inspected GO light-screen layout with a 280px sidebar, three summary cards, a period-filtered activity graph, searchable conversation table, pagination and a three-column chat detail. Its totals and chart are queried from the local database rather than the 50-row workspace snapshot. The registered widget uses customer-specific branding and published business knowledge. Shared controls follow the inspected Untitled library geometry.
 
-- `/`: product website with original High4Tech branding and supplied fonts.
+- `/`: product website with original High4Tech branding and bundled shadcn typography.
 - `/signup`, `/login`: local account registration and sign-in.
 - `/dashboard`: protected owner workspace with one business assistant. Dashboard, Chat record, Knowledge, Integrations, Users, Settings, Appearance and Demo Pricing. Legacy `#/bots` and `#/install` links open Assistant and Integrations.
 - `/widget?company=<public-assistant-id>`: public branding and locally generated, cited answers from that business's ready sources. No owner account is required to view the widget.
@@ -105,25 +105,11 @@ The project-local Windows PostgreSQL installation currently lacks pgvector. The 
 
 The cost-conscious deployment path reuses the current FastAPI, PostgreSQL, Sentence Transformers and Ollama components. A later Docker Compose package can use the official [pgvector PostgreSQL image](https://github.com/pgvector/pgvector#docker) and keep the API/worker/inference adapters separate; this PC's Docker daemon was not running during the PDF fix, so no container deployment is claimed. [Qwen3 4B on Ollama](https://ollama.com/library/qwen3:4b) is an Apache-2.0 licensed candidate to benchmark against the installed 3B model before any switch. Container images and model weights may be free to use under their licenses, but an always-on production server, storage, backups and support still have costs. The current local stack is already functional without Docker.
 
-## Figma provenance
+## Interface system
 
-Library: https://www.figma.com/design/NU1SlgUvw6zmalvW1Qhj6K/
+The current interface uses [shadcn/ui](https://ui.shadcn.com/) components with Tailwind CSS, the Nova preset, bundled Geist type, Lucide icons and the shadcn chart component (Recharts). `components.json` records the local registry configuration. Product layout CSS in `src/app.css` uses the library's color and radius tokens; the only brand accent is High4Tech orange `#F97328` alongside white and black. The original High4Tech logo and mascot remain local assets. The former custom visual stylesheets and Phosphor/Lenis packages were removed. No runtime CDN is used.
 
-Linked node 18:1951 returned an unavailable-selection error. The actual Buttons page 1:1183 and Inputs page 85:1269 were inspected instead, then high-fidelity secondary button 3287:427323 and input 3531:402962 contexts. Shared controls adapt their 8px corners, 40px height, 14px labels, spacing and border/shadow hierarchy to local CSS and the supplied typography.
-
-Product layout reference: https://www.figma.com/design/dxZUj3AlKSm8II2xgIvFwY/
-
-Exact inspected child contexts before implementation:
-- Widget set 2923:8293, including Home 2923:8335, Information 2923:8378, Chat 2923:8542, typing 2923:8582 and answered 2923:8610.
-- Dashboard 2913:7816 was sparse; inspected sidebar 3040:36753, metric 2913:7844, chart 2913:7860 and cell 2913:7868 separately. The later GO pass inspected light Home 3008:17100, Chats 3008:17205 and chat detail 3008:17431, then individual metric, chart, query-cell and pagination child nodes.
-- Inbox metadata 2953:15870; high-fidelity header 2956:8691 and message 2959:10480.
-- Knowledge metadata 2913:7930; high-fidelity website card 2913:7937 and upload card 2913:7943.
-- The later pass also inspected Knowledge 3008:18714, Settings 3008:18910, Users 3008:18814, Pricing 3008:19779, integration 3008:17860 and their relevant child cards/controls. Calls, plaintext-password columns, Drive/Database sources and live-payment or live-AI claims were not carried into the app.
-
-Original High4Tech favicon, wordmark and mascots were copied from approved sources. The original exported Figma icons remain local references; runtime icons now use bundled Phosphor React components. Reference screenshots are not runtime assets. No remote fonts/images/inference calls are used.
-
-H4T adapts the GO hierarchy to #F97328, a white-led customer UI and a single business assistant. Original High4Tech assets replace GO marks. Installation, operator and billing retain product-specific layouts; no pixel-exact Figma match is claimed.
-
+The company dashboard, visitor widget, local auth, product page and metadata-only operator surface share this theme. Business widget appearance can still use each customer's saved accent color and assets. Historical design exploration is recorded in `VERIFICATION.md`; it is not the current UI specification.
 ## Validation
 
 ```powershell
@@ -136,7 +122,7 @@ See VERIFICATION.md for evidence actually collected and limitations. Reference m
 
 ## Upstream references
 
-- [Phosphor React](https://github.com/phosphor-icons/react), MIT icon library.
-- [Lenis](https://github.com/darkroomengineering/lenis), MIT scrolling library.
+- [shadcn/ui](https://ui.shadcn.com/), local component source and theme.
+- [Lucide](https://lucide.dev/), bundled interface icons.
 - [FastAPI security documentation](https://fastapi.tiangolo.com/tutorial/security/).
 - [Meta’s WhatsApp webhook reference](https://whatsapp.github.io/WhatsApp-Nodejs-SDK/api-reference/webhooks/start/), verification and signature checking.

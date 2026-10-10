@@ -1,19 +1,8 @@
-import {useEffect} from 'react';
-import Lenis from 'lenis';
-import 'lenis/dist/lenis.css';
 import Widget from './Widget';
 import {Brand,Icon,Mascot} from './ui';
+import {Button as ShadButton} from '@/components/ui/button';
 
 export default function Landing(){
-  useEffect(()=>{
-    const reduced=matchMedia('(prefers-reduced-motion: reduce)');
-    if(reduced.matches)return;
-    const lenis=new Lenis({autoRaf:true,anchors:true,duration:1.05});
-    const stop=()=>{if(reduced.matches)lenis.destroy();};
-    reduced.addEventListener('change',stop);
-    return()=>{lenis.destroy();reduced.removeEventListener('change',stop);};
-  },[]);
-
   return <div className="h4t-landing">
     <header className="h4t-site-header">
       <Brand/>
@@ -21,7 +10,7 @@ export default function Landing(){
         <a href="#how-it-works">How it works</a>
         <a href="#preview">Try the assistant</a>
         <a href="/login">Sign in</a>
-        <a className="button primary" href="/signup">Create workspace <Icon name="arrow"/></a>
+        <ShadButton asChild><a href="/signup">Create workspace <Icon name="arrow"/></a></ShadButton>
       </nav>
     </header>
     <main>
@@ -31,7 +20,7 @@ export default function Landing(){
           <h1 id="h4t-hero-title">Your business knows the answer. Now your assistant can, too.</h1>
           <p className="h4t-hero-description">Give visitors one branded place to ask. Publish your website or documents, and your assistant can answer from that knowledge with sources. When a person is needed, your team can take over.</p>
           <div className="h4t-hero-actions">
-            <a className="button primary" href="/signup">Create your workspace <Icon name="arrow"/></a>
+            <ShadButton asChild size="lg"><a href="/signup">Create your workspace <Icon name="arrow"/></a></ShadButton>
             <a className="h4t-text-link" href="#preview">Try the sample assistant <Icon name="arrow"/></a>
           </div>
           <div className="h4t-hero-proof" aria-label="Product capabilities">
@@ -66,7 +55,7 @@ export default function Landing(){
       </section>
 
       <section className="h4t-final-cta">
-        <div><p>Built for the conversation after hello</p><h2>Let your business speak for itself.</h2><span>Create your workspace, publish a source, and try the assistant locally.</span><a className="button primary" href="/signup">Get started <Icon name="arrow"/></a></div>
+        <div><p>Built for the conversation after hello</p><h2>Let your business speak for itself.</h2><span>Create your workspace, publish a source, and try the assistant locally.</span><ShadButton asChild size="lg"><a href="/signup">Get started <Icon name="arrow"/></a></ShadButton></div>
         <Mascot/>
       </section>
     </main>
