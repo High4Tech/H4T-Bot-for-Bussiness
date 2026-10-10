@@ -1,4 +1,13 @@
-# Local verification — 6 October 2026
+# Local verification — 10 October 2026
+
+## Website-source functionality — 10 October
+
+- The implemented website source fetches **one public HTML or plain-text URL** after the owner publishes it. It does not yet discover a sitemap, follow same-site links, render JavaScript, obey robots.txt, or refresh automatically. Those are required before describing it as a whole-site crawler.
+- Added `test_published_website_html_reaches_visitor_answer` to cover saved URL → publication → bounded HTML fetch/cleanup → worker indexing → retrieval → cited visitor answer, with an uploaded TXT source in the same business and a second cited answer from that file. It uses a controlled HTTP response, deterministic vectors, and a stubbed generation result to isolate product wiring. Both SQLite and the project-local PostgreSQL test runs passed: 2 passed, 1 existing Starlette deprecation warning.
+- Ran `scripts/smoke-website.py` against the public `https://example.com/` page with the actual website fetcher, saved MiniLM embedding model, isolated temporary SQLite database, and installed Ollama `llama3.2:latest`. It indexed one chunk in 62.41 seconds, answered “What is this domain intended for?” in 31.49 seconds, and cited that URL. These times include cold startup and are a single observation, not a throughput benchmark. No customer website was tested in this run.
+- The local PostgreSQL service was started for the test; no production deployment or provider integration was created.
+
+## Earlier checks
 
 ## PDF upload diagnosis and workflow pass — 6 October
 
