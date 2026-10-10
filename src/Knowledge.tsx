@@ -1,3 +1,5 @@
+import {Input} from '@/components/ui/input';
+import {Label} from '@/components/ui/label';
 import {Table,TableHeader,TableBody,TableRow,TableHead,TableCell} from '@/components/ui/table';
 import {useState,type FormEvent} from 'react';
 import {addSource,processSource,removeSource,toggleSource,uploadSource,useCompany,type Source} from './store';
@@ -65,7 +67,7 @@ export default function Knowledge({company}:{company:string}){
       <small>Only public text pages are supported; private network addresses and redirects are blocked.</small>
     </form>}
     {kind==='file'&&<div className="panel source-form">
-      <label className="field">Local file<input type="file" accept=".txt,.pdf,.docx,.csv" disabled={busy} onChange={event=>{
+      <Label className="field">Local file<Input type="file" accept=".txt,.pdf,.docx,.csv" disabled={busy} onChange={event=>{
         const file=event.target.files?.[0];if(!file)return;
         if(file.size>10*1024*1024){setNotice('Choose a file under 10 MB.');return;}
         void act(async()=>{
@@ -73,7 +75,7 @@ export default function Knowledge({company}:{company:string}){
           setSavedId(id||'');setKind('');
           setNotice('File saved privately as a draft. Publish it to start indexing.');
         });
-      }}/></label><Button onClick={()=>setKind('')}>Cancel</Button>
+      }}/></Label><Button onClick={()=>setKind('')}>Cancel</Button>
       <small>Text-based PDFs are supported. Scanned pages need OCR, which is not enabled yet.</small>
     </div>}
     {notice&&<p role="status" className="inline-notice">{notice}</p>}

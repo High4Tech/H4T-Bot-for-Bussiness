@@ -1,3 +1,4 @@
+import {Button as ShadButton} from '@/components/ui/button';
 import type {CSSProperties} from 'react';
 import {useCompany} from './store';
 import {Badge,Button,Icon,Mascot} from './ui';
@@ -30,7 +31,7 @@ export default function Assistant({company,go,onPreview,connectionError}:Props){
       <div className="assistant-brand-stage" style={{'--business-accent':config.color} as CSSProperties}>
         <div className="assistant-stage-label"><span>THE FACE OF YOUR BUSINESS</span><Icon name="sparkle"/></div>
         <div className="assistant-avatar-plinth"><Mascot src={config.avatar}/></div>
-        <div className="assistant-welcome-card"><div><span className="welcome-avatar"><Mascot src={config.avatar}/></span><div><strong>{config.botName}</strong><small>{config.name}</small></div><span className="welcome-preview-label">Preview</span></div><p>{config.welcome}</p><button onClick={onPreview}>Say hello <Icon name="arrow"/></button></div>
+        <div className="assistant-welcome-card"><div><span className="welcome-avatar"><Mascot src={config.avatar}/></span><div><strong>{config.botName}</strong><small>{config.name}</small></div><span className="welcome-preview-label">Preview</span></div><p>{config.welcome}</p><ShadButton variant="ghost" onClick={onPreview}>Say hello <Icon name="arrow"/></ShadButton></div>
         <div className="assistant-stage-footer">Your colors. Your voice. Your assistant.</div>
       </div>
     </section>
@@ -41,7 +42,7 @@ export default function Assistant({company,go,onPreview,connectionError}:Props){
       <section className="panel assistant-status"><span className="status-symbol"><Icon name="inbox"/></span><div><span>Human handoff</span><strong>{waiting?`${waiting} ${waiting===1?'conversation':'conversations'} waiting`:'Your team can take over'}</strong><small>From your 50 most recent conversations.</small></div></section>
     </div>
 
-    <section className="assistant-setup" aria-labelledby="setup-heading"><div className="assistant-section-heading"><div><span className="eyebrow">BUILD YOUR CUSTOMER EXPERIENCE</span><h2 id="setup-heading">A few details. A more personal welcome.</h2></div><span className="setup-count">01 — 03</span></div><div className="assistant-setup-grid">{steps.map((step,index)=><article className="panel assistant-step" key={step.page}><div className="assistant-step-top"><span className="status-symbol"><Icon name={step.icon}/></span><span>0{index+1}</span></div><Badge>{step.detail}</Badge><h3>{step.title}</h3><p>{step.description}</p><button onClick={()=>go(step.page)}>{step.label}<Icon name="arrow"/></button></article>)}</div></section>
+    <section className="assistant-setup" aria-labelledby="setup-heading"><div className="assistant-section-heading"><div><span className="eyebrow">BUILD YOUR CUSTOMER EXPERIENCE</span><h2 id="setup-heading">A few details. A more personal welcome.</h2></div><span className="setup-count">01 — 03</span></div><div className="assistant-setup-grid">{steps.map((step,index)=><article className="panel assistant-step" key={step.page}><div className="assistant-step-top"><span className="status-symbol"><Icon name={step.icon}/></span><span>0{index+1}</span></div><Badge>{step.detail}</Badge><h3>{step.title}</h3><p>{step.description}</p><ShadButton variant="ghost" onClick={()=>go(step.page)}>{step.label}<Icon name="arrow"/></ShadButton></article>)}</div></section>
 
     <section className="panel assistant-channel-row"><div><h2>One assistant. Wherever you welcome people.</h2><p>Website, WordPress and Shopify use your branded widget. Social channels have local setup only.</p></div><div className="assistant-channel-icons" aria-label="Available setup channels">{[['web','Website'],['wordpress','WordPress'],['shopify','Shopify'],['whatsapp','WhatsApp'],['facebook','Facebook']].map(([icon,label])=><span key={icon} role="img" aria-label={label} title={label}><Icon name={icon}/></span>)}</div><Button variant="ghost" onClick={()=>go('channels')}>View channels <Icon name="arrow"/></Button></section>
   </div>;
