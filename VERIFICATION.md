@@ -1,4 +1,13 @@
-# Local verification — 10 October 2026
+# Local verification — 12 October 2026
+
+## Chatbot architecture and grounding pass — 12 October
+
+- Implemented a robots-aware, public-IP-pinned crawl of at most 12 same-origin pages and two link levels. A controlled two-page crawl verified per-page citations; a live fetch of https://example.com/ verified the network path. No customer website was tested. Redirects, JavaScript rendering, sitemap discovery and automatic refresh remain unsupported.
+- Version-keyed, tenant-scoped NumPy retrieval caches current published chunks. The local PostgreSQL schema migrated to version 5 with a page URL on each chunk. The running /api/health endpoint reported PostgreSQL schema 5 after the API restart.
+- Ollama now uses a JSON schema, exact source quotes and 30-minute model keep-alive. The answer gate rejects absent quotes, unsupported numbers/links, unrequested figures, and a price quote about a different subject. A real model run exposed two failures during development: low paraphrase recall and a maintenance price attached to website building. The cutoff and price checks were changed, then retested.
+- The final synthetic end-to-end smoke used installed MiniLM embeddings and Ollama llama3.2:latest with a disposable two-company SQLite database. It indexed a text source, retrieved one service passage for Cedar and none for the other company, answered the supported service question with a citation in 1.336 seconds of warm generation, and clarified both an unsupported mobile-app question and a website-building price absent from the source. These are individual observations, not latency or quality guarantees.
+- The focused Python AI suite passed 12 cases across SQLite and PostgreSQL after the retrieval and answer changes. Before those final adjustments, the broader scoped backend suite passed 38 cases, six Node tests passed, and the Vite production build passed. The final adjustments did not touch frontend code. The Python runs emitted one existing Starlette/TestClient deprecation warning.
+- The local engine still lacks pgvector, OCR, evaluated reranking, streaming generation and production-scale quality benchmarks. Exact-quote checks reduce risk but cannot prove every generated sentence is entailed. The dedicated local smoke script is scripts/smoke-engine.py; it uses only synthetic knowledge and cleans up its temporary database.
 
 ## Website-source functionality — 10 October
 

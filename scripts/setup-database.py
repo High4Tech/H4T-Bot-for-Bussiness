@@ -73,8 +73,9 @@ def main():
             for table in tables:
                 if not source.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name=?",(table,)).fetchone(): continue
                 rows=source.execute('SELECT * FROM '+table).fetchall()
+                columns=[row[1] for row in source.execute('PRAGMA table_info('+table+')').fetchall()]
                 for row in rows:
-                    cursor=target.execute(sql.SQL('INSERT INTO {} VALUES({}) ON CONFLICT DO NOTHING').format(sql.Identifier(table),sql.SQL(',').join(sql.Placeholder() for _ in row)),row)
+                    cursor=target.execute(sql.SQL('INSERT INTO {} ({}) VALUES({}) ON CONFLICT DO NOTHING').format(sql.Identifier(table),sql.SQL(',').join(map(sql.Identifier,columns)),sql.SQL(',').join(sql.Placeholder() for _ in row)),row)
                     imported+=cursor.rowcount
         config['sqliteMigrated']=True
         database.migrate() # seed subscriptions for imported owners
@@ -82,6 +83,6 @@ def main():
         apply_security(conn)
     temporary=CONFIG.with_suffix('.tmp')
     temporary.write_text(json.dumps(config,indent=2)); temporary.replace(CONFIG)
-    print(f'PostgreSQL running on 127.0.0.1:{bootstrap["port"]}; database h4t_bot; schema v4; imported {imported} rows. Customer RLS and operator metadata grants applied.')
+    print(f'PostgreSQL running on 127.0.0.1:{bootstrap["port"]}; database h4t_bot; schema v5; imported {imported} rows. Customer RLS and operator metadata grants applied.')
 
 if __name__=='__main__': main()

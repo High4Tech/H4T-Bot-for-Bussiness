@@ -1,64 +1,26 @@
+import {Badge} from '@/components/ui/badge';
+import {Button} from '@/components/ui/button';
+import {Card,CardContent,CardDescription,CardHeader,CardTitle} from '@/components/ui/card';
 import Widget from './Widget';
 import {Brand,Icon,Mascot} from './ui';
-import {Button as ShadButton} from '@/components/ui/button';
 
+const steps=[
+  {icon:'knowledge',title:'Add your knowledge',text:'Bring in your website and files. Keep drafts separate until you are ready to use them.'},
+  {icon:'sparkle',title:'Publish and index',text:'Make approved sources available to the assistant. See when each source is Ready.'},
+  {icon:'inbox',title:'Answer or hand off',text:'Visitors get grounded replies with citations. Your team can step in when the answer needs a person.'},
+];
 export default function Landing(){
-  return <div className="h4t-landing">
-    <header className="h4t-site-header">
-      <Brand/>
-      <nav aria-label="Main navigation">
-        <a href="#how-it-works">How it works</a>
-        <a href="#preview">Try the assistant</a>
-        <a href="/login">Sign in</a>
-        <ShadButton asChild><a href="/signup">Create workspace <Icon name="arrow"/></a></ShadButton>
-      </nav>
-    </header>
-    <main>
-      <section className="h4t-hero" aria-labelledby="h4t-hero-title">
-        <div className="h4t-hero-copy">
-          <p className="h4t-product-line"><span className="h4t-product-mark"/> H4T Bot by High4Tech</p>
-          <h1 id="h4t-hero-title">Your business knows the answer. Now your assistant can, too.</h1>
-          <p className="h4t-hero-description">Give visitors one branded place to ask. Publish your website or documents, and your assistant can answer from that knowledge with sources. When a person is needed, your team can take over.</p>
-          <div className="h4t-hero-actions">
-            <ShadButton asChild size="lg"><a href="/signup">Create your workspace <Icon name="arrow"/></a></ShadButton>
-            <a className="h4t-text-link" href="#preview">Try the sample assistant <Icon name="arrow"/></a>
-          </div>
-          <div className="h4t-hero-proof" aria-label="Product capabilities">
-            <span><Icon name="knowledge"/> Published knowledge</span>
-            <span><Icon name="shield"/> Source-backed replies</span>
-            <span><Icon name="user"/> Human handoff</span>
-          </div>
-        </div>
-        <div className="h4t-preview-stage" id="preview">
-          <div className="h4t-stage-heading"><span>Meet your website assistant</span><span>Interactive sample</span></div>
-          <div className="h4t-stage-monogram" aria-hidden="true">H4T</div>
-          <div className="h4t-stage-widget"><Widget company="high4tech"/></div>
-          <p className="h4t-stage-note">This sample uses scripted replies. Your workspace uses local AI after you publish knowledge.</p>
-        </div>
+  return <div className="min-h-screen bg-background text-foreground">
+    <header className="border-b"><div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-6 py-4"><Brand/><nav className="flex items-center gap-2" aria-label="Main navigation"><Button variant="ghost" asChild className="hidden sm:inline-flex"><a href="#how-it-works">How it works</a></Button><Button variant="ghost" asChild className="hidden md:inline-flex"><a href="#preview">Try the assistant</a></Button><Button variant="ghost" asChild><a href="/login">Sign in</a></Button><Button asChild><a href="/signup">Create workspace <Icon name="arrow"/></a></Button></nav></div></header>
+    <main className="mx-auto max-w-7xl px-6">
+      <section className="grid min-h-[40rem] items-center gap-10 py-14 lg:grid-cols-2 lg:py-20" aria-labelledby="hero-title">
+        <div><Badge variant="secondary">H4T Bot by High4Tech</Badge><h1 id="hero-title" className="mt-6 max-w-2xl text-4xl font-semibold leading-tight tracking-tight lg:text-6xl">Your business knows the answer. Now your assistant can, too.</h1><p className="mt-5 max-w-xl text-base leading-relaxed text-muted-foreground">Give visitors one branded place to ask. Publish your website or documents, and your assistant can answer from that knowledge with sources. When a person is needed, your team can take over.</p><div className="mt-7 flex flex-wrap gap-3"><Button asChild size="lg"><a href="/signup">Create your workspace <Icon name="arrow"/></a></Button><Button asChild size="lg" variant="outline"><a href="#preview">Try the sample assistant</a></Button></div><div className="mt-10 flex flex-wrap gap-5 text-xs text-muted-foreground"><span className="flex items-center gap-2"><Icon name="knowledge"/>Published knowledge</span><span className="flex items-center gap-2"><Icon name="shield"/>Source-backed replies</span><span className="flex items-center gap-2"><Icon name="user"/>Human handoff</span></div></div>
+        <Card id="preview" className="min-w-0 bg-muted/50"><CardHeader className="flex flex-row items-center justify-between"><CardTitle className="text-sm">Meet your website assistant</CardTitle><Badge variant="outline">Interactive sample</Badge></CardHeader><CardContent><div className="mx-auto h-[32rem] w-full max-w-sm"><Widget company="high4tech"/></div><p className="mt-4 text-center text-xs text-muted-foreground">This sample uses scripted replies. Your workspace uses local AI after you publish knowledge.</p></CardContent></Card>
       </section>
-
-      <section className="h4t-process" id="how-it-works" aria-labelledby="h4t-process-title">
-        <div className="h4t-section-intro">
-          <p>From what you know to what customers need</p>
-          <h2 id="h4t-process-title">One assistant, grounded in your business.</h2>
-        </div>
-        <div className="h4t-process-grid">
-          <article><span className="h4t-step">01</span><Icon name="knowledge"/><h3>Add your knowledge</h3><p>Bring in your website and files. Keep drafts separate until you are ready to use them.</p></article>
-          <article><span className="h4t-step">02</span><Icon name="sparkle"/><h3>Publish and index</h3><p>Make approved sources available to the assistant. See when each source is Ready.</p></article>
-          <article><span className="h4t-step">03</span><Icon name="inbox"/><h3>Answer or hand off</h3><p>Visitors get grounded replies with citations. Your team can step in when the answer needs a person.</p></article>
-        </div>
-      </section>
-
-      <section className="h4t-platform-note" aria-labelledby="h4t-platform-title">
-        <div><span className="h4t-platform-icon"><Icon name="website"/></span><div><h2 id="h4t-platform-title">Start on your website.</h2><p>Install one branded widget on a local test page. WhatsApp, Messenger and store-specific connectors are planned for later stages.</p></div></div>
-        <a href="/demo-host.html">Open the website demo <Icon name="arrow"/></a>
-      </section>
-
-      <section className="h4t-final-cta">
-        <div><p>Built for the conversation after hello</p><h2>Let your business speak for itself.</h2><span>Create your workspace, publish a source, and try the assistant locally.</span><ShadButton asChild size="lg"><a href="/signup">Get started <Icon name="arrow"/></a></ShadButton></div>
-        <Mascot/>
-      </section>
+      <section className="border-t py-16" id="how-it-works" aria-labelledby="process-title"><p className="text-xs font-semibold uppercase tracking-wider text-primary">From what you know to what customers need</p><h2 id="process-title" className="mt-2 text-3xl font-semibold tracking-tight">One assistant, grounded in your business.</h2><div className="mt-8 grid gap-4 md:grid-cols-3">{steps.map((step,i)=><Card key={step.title}><CardHeader><div className="flex items-center justify-between"><span className="flex size-10 items-center justify-center rounded-lg bg-primary/10 text-primary"><Icon name={step.icon}/></span><Badge variant="outline">0{i+1}</Badge></div><CardTitle className="mt-4">{step.title}</CardTitle><CardDescription>{step.text}</CardDescription></CardHeader></Card>)}</div></section>
+      <Card className="bg-muted/50"><CardHeader className="flex flex-row flex-wrap items-center justify-between gap-5"><div><CardTitle>Start on your website.</CardTitle><CardDescription>Install one branded widget on a local test page. Other channels remain setup previews.</CardDescription></div><Button variant="outline" asChild><a href="/demo-host.html">Open the website demo <Icon name="arrow"/></a></Button></CardHeader></Card>
+      <section className="my-14 grid items-center gap-8 rounded-2xl bg-zinc-950 p-8 text-white md:grid-cols-[1fr_auto] lg:p-12"><div><Badge className="bg-white/10 text-white">Built for the conversation after hello</Badge><h2 className="mt-4 text-3xl font-semibold tracking-tight text-white lg:text-4xl">Let your business speak for itself.</h2><p className="mt-3 text-white/70">Create your workspace, publish a source, and try the assistant locally.</p><Button asChild className="mt-6" size="lg"><a href="/signup">Get started <Icon name="arrow"/></a></Button></div><div className="hidden h-44 w-44 md:block"><Mascot/></div></section>
     </main>
-    <footer className="h4t-site-footer"><Brand/><span>H4T Bot is a local product preview by High4Tech.</span><a href="/login">Open workspace <Icon name="arrow"/></a></footer>
+    <footer className="border-t"><div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-4 px-6 py-6 text-xs text-muted-foreground"><Brand/><span>H4T Bot is a local product preview by High4Tech.</span><Button variant="link" asChild><a href="/login">Open workspace <Icon name="arrow"/></a></Button></div></footer>
   </div>;
 }

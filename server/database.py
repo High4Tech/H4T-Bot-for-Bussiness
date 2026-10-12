@@ -34,7 +34,7 @@ CREATE TABLE IF NOT EXISTS ingestion_jobs(
  FOREIGN KEY(source_id,company_id,version) REFERENCES source_versions(source_id,company_id,version),UNIQUE(source_id,version));
 CREATE TABLE IF NOT EXISTS knowledge_chunks(
  id TEXT PRIMARY KEY,company_id TEXT NOT NULL,source_id TEXT NOT NULL,version INTEGER NOT NULL,ordinal INTEGER NOT NULL,
- content TEXT NOT NULL,embedding TEXT NOT NULL,created DOUBLE PRECISION NOT NULL,
+ content TEXT NOT NULL,embedding TEXT NOT NULL,created DOUBLE PRECISION NOT NULL,page_url TEXT NOT NULL DEFAULT '',
  FOREIGN KEY(source_id,company_id,version) REFERENCES source_versions(source_id,company_id,version),UNIQUE(source_id,version,ordinal));
 CREATE TABLE IF NOT EXISTS visitors(
  id TEXT PRIMARY KEY,company_id TEXT NOT NULL REFERENCES companies(id),name TEXT NOT NULL,email TEXT NOT NULL DEFAULT '',consent INTEGER NOT NULL DEFAULT 0,
@@ -133,6 +133,7 @@ class Database:
                 connection.execute('ALTER TABLE ingestion_jobs ADD COLUMN IF NOT EXISTS attempts INTEGER NOT NULL DEFAULT 0')
                 connection.execute("ALTER TABLE messages ADD COLUMN IF NOT EXISTS citations TEXT NOT NULL DEFAULT '[]'")
                 connection.execute("ALTER TABLE messages ADD COLUMN IF NOT EXISTS engine TEXT NOT NULL DEFAULT 'scripted'")
+                connection.execute("ALTER TABLE knowledge_chunks ADD COLUMN IF NOT EXISTS page_url TEXT NOT NULL DEFAULT ''")
                 connection.execute("CREATE INDEX IF NOT EXISTS chunks_search ON knowledge_chunks USING GIN (to_tsvector('simple',content))")
             else:
                 jobs_columns={row['name'] for row in connection.execute('PRAGMA table_info(ingestion_jobs)').fetchall()}
@@ -142,10 +143,13 @@ class Database:
                 columns={row['name'] for row in connection.execute('PRAGMA table_info(messages)').fetchall()}
                 if 'citations' not in columns: connection.execute("ALTER TABLE messages ADD COLUMN citations TEXT NOT NULL DEFAULT '[]'")
                 if 'engine' not in columns: connection.execute("ALTER TABLE messages ADD COLUMN engine TEXT NOT NULL DEFAULT 'scripted'")
+                chunk_columns={row['name'] for row in connection.execute('PRAGMA table_info(knowledge_chunks)').fetchall()}
+                if 'page_url' not in chunk_columns: connection.execute("ALTER TABLE knowledge_chunks ADD COLUMN page_url TEXT NOT NULL DEFAULT ''")
             connection.execute("UPDATE ingestion_jobs SET status='queued',updated=? WHERE status='deferred' AND EXISTS (SELECT 1 FROM knowledge_sources s WHERE s.id=ingestion_jobs.source_id AND s.company_id=ingestion_jobs.company_id AND s.version=ingestion_jobs.version AND s.status='Demo published' AND s.deleted_at IS NULL)",(time.time(),))
             connection.execute("INSERT INTO schema_migrations VALUES(2,?) ON CONFLICT(version) DO NOTHING", (time.time(),))
             connection.execute("INSERT INTO schema_migrations VALUES(3,?) ON CONFLICT(version) DO NOTHING", (time.time(),))
             connection.execute("INSERT INTO schema_migrations VALUES(4,?) ON CONFLICT(version) DO NOTHING", (time.time(),))
+            connection.execute("INSERT INTO schema_migrations VALUES(5,?) ON CONFLICT(version) DO NOTHING", (time.time(),))
             connection.execute("INSERT INTO subscriptions(company_id,plan,updated) SELECT id,'Starter',? FROM companies WHERE 1=1 ON CONFLICT(company_id) DO NOTHING", (time.time(),))
 
     def health(self):

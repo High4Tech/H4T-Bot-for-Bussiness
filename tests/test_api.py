@@ -40,6 +40,28 @@ def test_signin_and_origin_rejection(service):
     assert client.get("/api/company").status_code == 200
     assert TestClient(service).get("/api/company").status_code == 401
 
+
+def test_local_preview_signin_uses_only_designated_owner(service, tmp_path, monkeypatch):
+    preview_file = tmp_path / "preview-account.json"
+    monkeypatch.setattr("server.app.PREVIEW_ACCOUNT", preview_file)
+    client, user, _ = owner(service)
+    client.cookies.clear()
+    assert client.post("/api/auth/preview", headers=ORIGIN).status_code == 404
+    preview_file.write_text(json.dumps({"id": user["id"], "companyId": user["companyId"]}))
+    assert client.post("/api/auth/preview").status_code == 403
+    signed_in = client.post("/api/auth/preview", headers=ORIGIN)
+    assert signed_in.status_code == 200
+    assert signed_in.json()["id"] == user["id"]
+    assert client.get("/api/company").status_code == 200
+    client.cookies.clear()
+    preview_file.write_text(json.dumps({"id": user["id"], "companyId": "different-company"}))
+    assert client.post("/api/auth/preview", headers=ORIGIN).status_code == 404
+    with service.state.db() as db:
+        operator_id = secrets.token_hex(16)
+        db.execute("INSERT INTO users VALUES(?,?,?,?,?,?)", (operator_id, "other-operator@example.test", "Operator", password_hash(PASSWORD), None, "platform_admin"))
+    preview_file.write_text(json.dumps({"id": operator_id, "companyId": None}))
+    assert client.post("/api/auth/preview", headers=ORIGIN).status_code == 404
+
 def test_workspace_isolation_and_public_appearance(service):
     a, ua, _ = owner(service, "a@example.test", "Company A")
     b, ub, _ = owner(service, "b@example.test", "Company B")

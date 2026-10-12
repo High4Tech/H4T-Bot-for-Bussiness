@@ -11,13 +11,14 @@ from collections import defaultdict, deque
 from pathlib import Path
 from fastapi import FastAPI, HTTPException, Request, Response, Depends
 from pydantic import BaseModel, Field
-from server.database import Database, INTEGRITY_ERRORS
+from server.database import APP_ROOT, Database, INTEGRITY_ERRORS
 from server.product import install_product_routes
 from server import ai, knowledge
 from starlette.middleware.trustedhost import TrustedHostMiddleware
 
 CHANNELS = ("web", "whatsapp", "facebook", "wordpress", "shopify")
 COOKIE = "h4t_session"
+PREVIEW_ACCOUNT = APP_ROOT / ".local/preview-account.json"
 ORIGINS = {f"http://{host}:{port}" for host in ("127.0.0.1", "localhost") for port in (5173, 5174)}
 
 class Credentials(BaseModel):
@@ -192,6 +193,22 @@ def create_app(db_path: Path | str | None = None, db_config=None):
         stored = user["password_hash"] if user else dummy_hash
         if not password_matches(data.password, stored) or not user:
             raise HTTPException(401, "Email or password is incorrect.")
+        create_session(user["id"], response)
+        return public_user(dict(user))
+
+    @app.post("/api/auth/preview")
+    def preview_login(request: Request, response: Response):
+        try:
+            preview = json.loads(PREVIEW_ACCOUNT.read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            raise HTTPException(404, "Local preview sign-in is not configured.")
+        if not isinstance(preview, dict) or not isinstance(preview.get("id"), str):
+            raise HTTPException(404, "Local preview sign-in is not configured.")
+        limit_auth(request, preview["id"])
+        with db() as conn:
+            user = conn.execute("SELECT * FROM users WHERE id=?", (preview["id"],)).fetchone()
+        if not user or user["role"] != "owner" or user["company_id"] != preview.get("companyId"):
+            raise HTTPException(404, "Local preview account is unavailable.")
         create_session(user["id"], response)
         return public_user(dict(user))
 

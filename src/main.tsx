@@ -4,7 +4,6 @@ import {AuthProvider,AuthScreen,Guard} from './Auth';
 import {api} from './api';
 import type {BotConfig} from './demo-model.mjs';
 import './index.css';
-import './app.css';
 const Dashboard=lazy(()=>import('./Dashboard'));
 const Platform=lazy(()=>import('./Platform'));
 const Widget=lazy(()=>import('./Widget'));
@@ -13,10 +12,10 @@ function PublicWidget(){
  const candidate=new URLSearchParams(location.search).get('company')||'high4tech';const company=/^(cedar|high4tech|[a-f0-9]{32})$/.test(candidate)?candidate:'';
  const fixture=['high4tech','cedar'].includes(company);const [ready,setReady]=useState(false);const [error,setError]=useState('');
  useEffect(()=>{let live=true;import('./store').then(async store=>{if(!company)throw new Error('Assistant not found.');if(fixture)store.synchronizeDemo();else{const data=await api<{appearance:BotConfig}>('/embed/'+company);if(live)store.initializeWorkspace(company,data.appearance);}if(live)setReady(true);}).catch(e=>{if(live)setError(e.message);});return()=>{live=false;};},[company,fixture]);
- return <div className="standalone-widget">{error?<div className="loading-page" role="alert">{error}</div>:ready?<Widget company={company}/>:<div className="loading-page">Opening assistant…</div>}</div>;
+ return <div className="flex min-h-screen items-center justify-center bg-muted p-4 [&>.widget]:h-[min(42rem,calc(100vh-2rem))] [&>.widget]:w-full [&>.widget]:max-w-sm">{error?<div className="p-12 text-sm text-muted-foreground" role="alert">{error}</div>:ready?<Widget company={company}/>:<div className="p-12 text-sm text-muted-foreground">Opening assistant…</div>}</div>;
 }
 const path=location.pathname;
 const appRoot:Root=import.meta.hot?.data.root??createRoot(document.getElementById('root')!);
 if(import.meta.hot)import.meta.hot.dispose(data=>{data.root=appRoot;});
-const fallback=<div className="loading-page">Loading your local workspace…</div>;
+const fallback=<div className="p-12 text-sm text-muted-foreground">Loading your local workspace…</div>;
 appRoot.render(<React.StrictMode><Suspense fallback={fallback}>{path==='/widget'?<PublicWidget/>:path==='/'?<Landing/>:<AuthProvider>{path==='/platform'?<Guard platform><Platform/></Guard>:path.startsWith('/dashboard')?<Guard><Dashboard/></Guard>:<AuthScreen/>}</AuthProvider>}</Suspense></React.StrictMode>);

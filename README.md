@@ -41,17 +41,17 @@ If another local app already uses port 5173, start only this frontend with `npm.
 
 ## Typography and motion
 
-PP Neue Montreal is used for headings and the product website; Helvetica Neue for workspace and widget text. Supplied font binaries are installed locally and excluded from Git because the ZIPs contain no redistribution license. A fresh checkout uses Helvetica / Arial fallbacks. Import your licensed archives:
+The current shadcn interface uses bundled Geist. The previously supplied PP Neue Montreal and Helvetica Neue font binaries can remain in the ignored local assets; the ZIPs contain no redistribution license. If needed for a later licensed design revision, import your own archives:
 
 ```powershell
 ./scripts/import-fonts.ps1 -NeueMontrealZip "path/to/pp-neue-montreal-cufonfonts.zip" -HelveticaNeueZip "path/to/helvetica-neue-5.zip"
 ```
 
-The script extracts only six known font filenames, never ZIP paths or executable files. Phosphor icons and Lenis are installed packages, served locally. Lenis is confined to the product website; smoothing and decorative animation are disabled with reduced-motion preferences. No runtime CDN, remote font, image, analytics or inference dependency is included.
+The script extracts only six known font filenames, never ZIP paths or executable files. Current icons are bundled Lucide components. No runtime CDN, remote font, image, analytics or inference dependency is included.
 
 ## Surfaces
 
-The customer dashboard adapts the inspected GO light-screen layout with a 280px sidebar, three summary cards, a period-filtered activity graph, searchable conversation table, pagination and a three-column chat detail. Its totals and chart are queried from the local database rather than the 50-row workspace snapshot. The registered widget uses customer-specific branding and published business knowledge. Shared controls follow the inspected Untitled library geometry.
+The customer dashboard has summary cards, a period-filtered activity graph, searchable conversation table, pagination and a chat detail. Its totals and chart are queried from the local database rather than the 50-row workspace snapshot. The registered widget uses customer-specific branding and published business knowledge. Current controls use the installed shadcn library.
 
 - `/`: product website with original High4Tech branding and bundled shadcn typography.
 - `/signup`, `/login`: local account registration and sign-in.
@@ -63,11 +63,15 @@ The customer dashboard adapts the inspected GO light-screen layout with a 280px 
 
 Registration creates exactly one assistant per business. There is no create-bot flow or list of assistants. Branding settings save through the authenticated API and are shared by that assistant’s website installations. Website source records, privately stored files, version history, visitor sessions, conversations, handoffs and Demo billing persist. Publishing a source queues bounded text extraction and indexing. Only ready, currently published source versions can support an answer. Source publication still has the legacy database label “Demo published”; billing alone is simulated.
 
+Website indexing now follows up to 12 same-origin pages within two link levels, subject to the site's robots rules and local text/chunk limits. A cited answer links to the specific indexed page. Reprocess a published source after its website changes. The API keeps only four tenant/version-scoped retrieval matrices in memory and asks the local model for a short structured answer with exact supporting quotes; uncited or unsupported outputs fall back to clarification. This improves repeated-query latency but does not make the local model infallible.
+
 To answer from a PDF: sign in, open **Knowledge**, choose a text-based PDF under 10 MB, select **Publish & index**, and wait for **Ready**. Then ask a question in **Try in browser**. An upload saved as Draft is private storage, not answerable knowledge. If the session expires during upload, the file is not saved and must be selected again after sign-in. Scanned/image-only PDFs currently need OCR; the index shows a specific failure instead of claiming Ready.
 
 ## Local authentication and privacy
 
-Passwords use salted scrypt hashes. Sessions use random tokens, hashed server storage and HTTP-only, SameSite Strict cookies with eight-hour expiry. Logout revokes the server session. Owner APIs derive company membership from the session instead of trusting a client-supplied company ID. Writes require a trusted local Origin; requests and auth attempts are bounded. Hostnames are restricted to loopback (plus the test harness host).
+For this local preview, **Sign in** needs no password: it opens only the owner account designated by the ignored `.local/preview-account.json` file. The endpoint is unavailable when that file is absent or does not match an owner account in the local database. It never signs in a platform operator. Anyone with access to this running PC can enter that preview workspace, so remove the file before using real customer data or deploying the service. New workspace registration and the separate operator sign-in still require passwords.
+
+Passwords for those accounts use salted scrypt hashes. Sessions use random tokens, hashed server storage and HTTP-only, SameSite Strict cookies with eight-hour expiry. Logout revokes the server session. Owner APIs derive company membership from the session instead of trusting a client-supplied company ID. Writes require a trusted local Origin; requests and auth attempts are bounded. Hostnames are restricted to loopback (plus the test harness host).
 
 The HTTP cookie intentionally has `Secure=false` for local HTTP. This is a development service, not a production security or deployment claim. Email delivery, verification, password reset, team invitations, production retention and deployment are deferred. Local limits bound files, sources, conversation creation and message volume; these are development limits, not sold plan allowances.
 
@@ -107,7 +111,7 @@ The cost-conscious deployment path reuses the current FastAPI, PostgreSQL, Sente
 
 ## Interface system
 
-The current interface uses [shadcn/ui](https://ui.shadcn.com/) components with Tailwind CSS, the Nova preset, bundled Geist type, Lucide icons and the shadcn chart component (Recharts). `components.json` records the local registry configuration. Product layout CSS in `src/app.css` uses the library's color and radius tokens; the only brand accent is High4Tech orange `#F97328` alongside white and black. The original High4Tech logo and mascot remain local assets. The former custom visual stylesheets and Phosphor/Lenis packages were removed. No runtime CDN is used.
+The current interface uses [shadcn/ui](https://ui.shadcn.com/) components with Tailwind CSS, the Nova preset, bundled Geist type, Lucide icons and the shadcn chart component (Recharts). `components.json` records the local registry configuration. Theme tokens and app layout live in `src/index.css`; the brand accent is High4Tech orange `#F97328` alongside white and black. The original High4Tech logo and mascot remain local assets. No runtime CDN is used.
 
 The company dashboard, visitor widget, local auth, product page and metadata-only operator surface share this theme. Business widget appearance can still use each customer's saved accent color and assets. Historical design exploration is recorded in `VERIFICATION.md`; it is not the current UI specification.
 ## Validation
@@ -116,9 +120,10 @@ The company dashboard, visitor widget, local auth, product page and metadata-onl
 npm.cmd run build
 npm.cmd test
 .venv/Scripts/python.exe -m pytest -c pytest.ini tests -q
+.venv/Scripts/python.exe scripts/smoke-engine.py
 ```
 
-See VERIFICATION.md for evidence actually collected and limitations. Reference materials and local proof screenshots are excluded from the published repository.
+The smoke command creates temporary synthetic knowledge, then exercises local embedding, tenant-scoped retrieval, Ollama answers and unsupported-fact clarification. It requires the local embedding files and Ollama model. See VERIFICATION.md for evidence actually collected and limitations. Reference materials and local proof screenshots are excluded from the published repository.
 
 ## Upstream references
 
